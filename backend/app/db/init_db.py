@@ -18,9 +18,9 @@ async def seed_data():
         existing = await session.execute(select(User).where(User.email == "admin@omt.com"))
         if existing.scalars().first() is None:
             users = [
-                User(email="orga@omt.com", password_hash=hash_password("orga123"), role="organisateur", nom="Marie Dupont", status="active"),
-                User(email="verif@omt.com", password_hash=hash_password("verif123"), role="verificateur", nom="Jean Martin", status="active"),
-                User(email="admin@omt.com", password_hash=hash_password("admin123"), role="admin", nom="Admin OMT", status="active"),
+                User(email="orga@omt.com", password_hash=hash_password("orga123"), role="organisateur", nom="Marie Dupont", status="active", is_approved=True),
+                User(email="verif@omt.com", password_hash=hash_password("verif123"), role="verificateur", nom="Jean Martin", status="active", is_approved=True),
+                User(email="admin@omt.com", password_hash=hash_password("admin123"), role="admin", nom="Admin OMT", status="active", is_approved=True),
             ]
             session.add_all(users)
 
