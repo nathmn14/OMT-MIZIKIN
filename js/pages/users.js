@@ -172,7 +172,7 @@ async function approveUserInTable(id) {
 async function removeUserInTable(id) {
     if (confirm("Voulez-vous vraiment supprimer définitivement cet utilisateur ?")) {
         try {
-            await apiRejectUser(id);
+            await apiDeleteUser(id);
             showToast("Utilisateur supprimé", "success");
             loadUsersTable();
         } catch (err) {

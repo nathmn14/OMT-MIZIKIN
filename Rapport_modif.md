@@ -56,3 +56,46 @@ Création d'une page dédiée "Studio Admin" incluant :
 
 ## ✅ État Final
 Le système est entièrement opérationnel. L'administrateur a désormais un contrôle total sur l'accès à la plateforme, garantissant la sécurité et la qualité des organisateurs présents sur OMT Events.
+
+---
+
+## 🛠️ Mise à jour du 9 Février 2026 (13:05)
+**Objet :** Correction de la suppression des utilisateurs actifs et gestion des intégrités.
+
+### 🔹 Corrections Backend
+- **Modèle Scan (`backend/app/models/scan.py`)** : Ajout de `ondelete="SET NULL"` sur la clé étrangère `verifier_id`. Cela permet de supprimer un compte utilisateur (Vérificateur) même s'il a déjà scanné des billets, sans provoquer d'erreur d'intégrité en base de données.
+
+### 🔹 Améliorations Frontend
+- **API Client (`js/db.js`)** : Ajout de la fonction `apiDeleteUser` pour cibler la route de suppression définitive de l'API.
+- **Interface Utilisateurs (`js/pages/users.js`)** : Correction de la fonction `removeUserInTable` qui utilisait par erreur la route de "rejet" (limitée aux comptes en attente). Elle utilise désormais `apiDeleteUser`, permettant à l'admin de supprimer n'importe quel utilisateur, qu'il soit approuvé ou non.
+
+---
+
+## 🛠️ Mise à jour du 9 Février 2026 (13:45)
+**Objet :** Ajout de la gestion des événements pour l'administrateur.
+
+### 🔹 Corrections Backend
+- **Nouveaux Endpoints (`backend/app/api/routes/events.py`)** : Ajout de la route `DELETE /api/events/{id}` protégée par le rôle administrateur.
+- **Modèle Ticket (`backend/app/models/ticket.py`)** : Ajout de `ondelete="CASCADE"` sur la clé étrangère `event_id`. La suppression d'un événement entraîne désormais la suppression propre de tous ses billets associés.
+- **Modèle Scan (`backend/app/models/scan.py`)** : Ajout de `ondelete="CASCADE"` sur la clé étrangère `ticket_id`. La suppression d'un billet entraîne la suppression de son historique de scans.
+
+### 🔹 Améliorations Frontend
+- **Interface Admin (`js/pages/admin.js`)** : 
+    - Intégration d'un nouveau tableau de gestion des événements dans le dashboard.
+    - Affichage des statistiques par événement (nombre de billets vendus et revenus générés).
+    - Ajout de la fonctionnalité de suppression définitive d'un événement avec confirmation de sécurité.
+- **API Client (`js/db.js`)** : Ajout de la fonction `apiDeleteEvent`.
+
+---
+
+## 🛠️ Mise à jour du 9 Février 2026 (14:00)
+**Objet :** Extension de la suppression des événements aux organisateurs.
+
+### 🔹 Corrections Backend
+- **Dépendances API (`backend/app/api/deps.py`)** : Ajout de la fonction `require_roles(roles: list[str])` permettant d'autoriser plusieurs rôles sur un même point de terminaison.
+- **Points d'accès (`backend/app/api/routes/events.py`)** : Mise à jour de la route de suppression pour autoriser à la fois les administrateurs et les organisateurs.
+
+### 🔹 Améliorations Frontend
+- **Interface Organisateur (`js/pages/organizer.js`)** : 
+    - Ajout d'un bouton de suppression (icône poubelle) à côté du bouton "Gérer" pour chaque événement dans le tableau de bord.
+    - Implémentation de la fonction `deleteEventOrga` avec confirmation de sécurité et notification de succès.

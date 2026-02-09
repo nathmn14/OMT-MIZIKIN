@@ -61,8 +61,30 @@ function PageDashboardAdmin() {
                     </div>
                 </div>
             </div>
-
-            <!-- ... reste des événements ... -->
+            <!-- Gestion des événements -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-100 mb-8">
+                <div class="p-4 sm:p-6 border-b border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-900">Gestion des Événements</h2>
+                    <p class="text-sm text-slate-500">Visualisez et gérez tous les événements de la plateforme.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b border-slate-200 font-bold text-slate-700 text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">Événement</th>
+                                <th class="px-6 py-4">Date & Lieu</th>
+                                <th class="px-6 py-4">Stats</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-events-list" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-slate-500 italic">Chargement des événements...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -73,6 +95,7 @@ async function loadDashboardData() {
         allUsers = await apiListAllUsers();
         document.getElementById('total-users-count').textContent = allUsers.length;
         renderQuickPending();
+        renderAdminEvents();
     } catch (err) {
         showToast("Erreur dashboard", "error");
     }
@@ -110,6 +133,71 @@ function renderQuickPending() {
             </div>
         </div>
     `).join('');
+}
+
+function renderAdminEvents() {
+    const container = document.getElementById('admin-events-list');
+    if (!container) return;
+
+    if (OMT_STATE.events.length === 0) {
+        container.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 italic">Aucun événement n'a été créé.</td></tr>`;
+        return;
+    }
+
+    container.innerHTML = OMT_STATE.events.map(event => {
+        const eventTickets = OMT_STATE.tickets.filter(t => t.event_id === event.id);
+        const soldCount = eventTickets.length;
+        const totalRevenue = eventTickets.reduce((sum, t) => sum + t.prix, 0);
+
+        return `
+            <tr class="hover:bg-slate-50/50 transition">
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <img src="${event.image || 'https://via.placeholder.com/150'}" alt="${event.titre}" class="h-10 w-16 object-cover rounded shadow-sm border border-slate-200">
+                        <div>
+                            <div class="font-bold text-slate-900">${event.titre}</div>
+                            <div class="text-xs text-slate-500 truncate max-w-[200px]">${event.description || 'Pas de description'}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-slate-700">${formatDate ? formatDate(event.date) : event.date}</div>
+                    <div class="text-xs text-slate-500">${event.lieu}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-700">${soldCount} billets vendus</span>
+                        <span class="text-xs text-green-600 font-medium">${totalRevenue}€ générés</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick="deleteEventAdmin(${event.id})" 
+                                class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition"
+                                title="Supprimer l'événement">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function deleteEventAdmin(eventId) {
+    if (!confirm("Voulez-vous vraiment supprimer cet événement ? Cette action supprimera également tous les billets et catégories associés. Cette action est irréversible.")) {
+        return;
+    }
+
+    try {
+        await apiDeleteEvent(eventId);
+        showToast("Événement supprimé avec succès", "success");
+        // Recharger les données
+        await apiListEvents();
+        renderAdminEvents();
+    } catch (err) {
+        showToast(err.message || "Erreur lors de la suppression de l'événement", "error");
+    }
 }
 
 

@@ -187,6 +187,10 @@ async function apiCreateEvent(payload) {
     return event;
 }
 
+async function apiDeleteEvent(eventId) {
+    return apiFetch(`/events/${eventId}`, { method: "DELETE" });
+}
+
 async function apiCheckout(payload) {
     const data = await apiFetch("/tickets/checkout", {
         method: "POST",
@@ -241,6 +245,10 @@ async function apiApproveUser(userId) {
 
 async function apiRejectUser(userId) {
     return apiFetch(`/admin/users/${userId}/reject`, { method: "DELETE" });
+}
+
+async function apiDeleteUser(userId) {
+    return apiFetch(`/admin/users/${userId}`, { method: "DELETE" });
 }
 
 async function apiToggleUserApproval(userId) {
