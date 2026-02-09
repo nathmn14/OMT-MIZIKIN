@@ -200,70 +200,7 @@ function PageCheckout(data) {
     `;
 }
 
-function PageSuccess(data) {
-    const tickets = OMT_STATE.lastPurchase || [];
-    if (tickets.length === 0) {
-        return `
-            ${Navbar(false)}
-            <div class="max-w-3xl mx-auto px-4 py-12 text-center">
-                <div class="bg-white rounded-xl shadow-2xl p-6">
-                    <h1 class="text-2xl font-bold text-slate-800 mb-2">Achat termine</h1>
-                    <p class="text-slate-600">Aucun billet a afficher. Retournez a l'accueil.</p>
-                    <button onclick="Router.navigate('home')" class="mt-4 bg-blue-600 text-white px-6 py-3 rounded-lg">Retour</button>
-                </div>
-            </div>
-        `;
-    }
-
-    const event = getEventById(tickets[0].event_id);
-    const totalAmount = tickets.reduce((sum, t) => sum + t.prix, 0);
-
-    return `
-        ${Navbar(false)}
-        <div class="max-w-4xl mx-auto px-4 py-6 sm:py-12 text-center">
-            <div class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 lg:p-8">
-                <div class="text-4xl sm:text-6xl mb-3 sm:mb-4">OK</div>
-                <h1 class="text-2xl sm:text-3xl font-bold text-green-600 mb-3 sm:mb-4">Reservation confirmee !</h1>
-                <p class="text-sm sm:text-base text-slate-600 mb-2">Vos billets ont ete envoyes par email</p>
-                <p class="text-lg sm:text-xl font-bold text-blue-600 mb-6 sm:mb-8">${tickets.length} billet${tickets.length > 1 ? 's' : ''} - Total: ${totalAmount}€</p>
-                
-                <div class="grid grid-cols-1 ${tickets.length > 1 ? 'md:grid-cols-2' : ''} gap-4 mb-6 sm:mb-8">
-                    ${tickets.map(t => `
-                        <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 sm:p-6">
-                            <h3 class="text-base sm:text-lg font-bold mb-3">${event ? event.titre : 'Evenement'}</h3>
-                            <div class="flex justify-center mb-3">
-                                <div id="qr-${t.id}" class="qr-box"></div>
-                            </div>
-                            <p class="font-mono text-xs text-slate-600 mb-2">Code: ${t.qr_code_data}</p>
-                            <p class="text-xs sm:text-sm text-slate-700"><strong>Participant:</strong> ${t.participant_name}</p>
-                            <p class="text-xs sm:text-sm text-slate-700"><strong>Type:</strong> ${t.type.toUpperCase()}</p>
-                            <p class="text-xs sm:text-sm text-slate-700"><strong>Prix:</strong> ${t.prix}€</p>
-                            <div class="mt-4 flex gap-2 justify-center">
-                                <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-bold" onclick="downloadQr('${t.id}', '${t.qr_code_data}')">
-                                    Telecharger QR
-                                </button>
-                                <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold" onclick="downloadTicket('${t.id}')">
-                                    Telecharger billet
-                                </button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
-                    <p class="text-sm text-slate-700">
-                        Un email de confirmation avec tous vos billets a ete envoye a votre adresse.
-                        ${tickets.length > 1 ? `<br>Vous avez recu ${tickets.length} QR codes uniques.` : ''}
-                    </p>
-                </div>
-                
-                <button onclick="Router.navigate('home')" class="bg-blue-600 text-white px-6 sm:px-8 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base">
-                    Retour a l'accueil
-                </button>
-            </div>
-        </div>
-    `;
-}
+// La fonction PageSuccess est désormais fusionnée avec PageTicketSuccess pour éviter les doublons
 
 // LOGIQUE PUBLIQUE
 function selectTicket(eventId, type, prix, categoryId = null) {
@@ -346,6 +283,12 @@ function PageTicketSuccess(data) {
                 <p class="text-sm sm:text-base text-slate-600 mb-2">Votre achat est valide. Vos billets sont ci-dessous.</p>
                 <p class="text-lg sm:text-xl font-bold text-blue-600 mb-6 sm:mb-8">${tickets.length} billet${tickets.length > 1 ? 's' : ''} - Total: ${totalAmount}€</p>
 
+                ${tickets.length > 1 ? `
+                    <button onclick="downloadAllTickets()" class="mb-8 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition-all flex items-center justify-center gap-2 mx-auto">
+                        📥 Télécharger tous les billets (${tickets.length})
+                    </button>
+                ` : ''}
+
                 <div class="grid grid-cols-1 ${tickets.length > 1 ? 'md:grid-cols-2' : ''} gap-4 mb-6 sm:mb-8">
                     ${tickets.map(t => `
                         <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 sm:p-6">
@@ -385,25 +328,33 @@ function PageTicketSuccess(data) {
 
 function renderQrCodes() {
     const tickets = OMT_STATE.lastPurchase || [];
+    if (tickets.length === 0) return;
+
     if (typeof QRCode === "undefined") {
-        // Fallback: show code text if QR lib not loaded
         tickets.forEach(t => {
             const el = document.getElementById(`qr-${t.id}`);
-            if (el) {
-                el.innerHTML = `<div class="text-xs text-slate-600 font-mono">${t.qr_code_data}</div>`;
-            }
+            if (el) el.innerHTML = `<div class="text-xs text-slate-600 font-mono">${t.qr_code_data}</div>`;
         });
         return;
     }
-    tickets.forEach(t => {
+
+    // On utilise un petit délai pour laisser au navigateur le temps de souffler entre chaque QR Code si beaucoup
+    tickets.forEach((t, index) => {
         const el = document.getElementById(`qr-${t.id}`);
         if (!el) return;
-        el.innerHTML = "";
-        new QRCode(el, {
-            text: t.qr_code_data,
-            width: 120,
-            height: 120
-        });
+
+        el.innerHTML = ""; // Clear
+        try {
+            new QRCode(el, {
+                text: t.qr_code_data,
+                width: 120,
+                height: 120,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } catch (err) {
+            console.error(`Erreur QR Code pour billet ${t.id}:`, err);
+            el.innerHTML = `<div class="text-[10px] break-all">${t.qr_code_data}</div>`;
+        }
     });
 }
 
@@ -434,12 +385,33 @@ function downloadTicket(ticketId) {
 
     const styles = `
         <style>
-            body{font-family:Arial,sans-serif;padding:20px;}
-            .ticket{border:2px dashed #cbd5e1;border-radius:16px;padding:20px;}
-            .title{font-size:18px;font-weight:bold;margin-bottom:8px;}
-            .mono{font-family:monospace;font-size:12px;color:#475569;}
-            .small{font-size:12px;color:#334155;margin:4px 0;}
-            .qr{display:flex;justify-content:center;margin:12px 0;}
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: #f8fafc;
+            }
+            .ticket {
+                border: 2px dashed #cbd5e1;
+                border-radius: 20px;
+                padding: 40px;
+                background: white;
+                width: 100%;
+                max-width: 450px;
+                box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            }
+            .title { font-size: 24px; font-weight: bold; margin-bottom: 15px; text-align: center; color: #1e293b; }
+            .qr { display: flex; justify-content: center; margin: 25px 0; }
+            .qr img, .qr canvas { width: 200px !important; height: 200px !important; }
+            .info-line { font-size: 14px; color: #334155; margin: 8px 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+            .mono { font-family: monospace; font-size: 13px; color: #64748b; text-align: center; margin-top: 15px; }
+            @media print {
+                body { background: white; }
+                .ticket { border: 2px solid #000; box-shadow: none; }
+            }
         </style>
     `;
     const qrImg = card.querySelector("img") || card.querySelector("canvas");
@@ -449,13 +421,107 @@ function downloadTicket(ticketId) {
         <html><head><title>Billet OMT</title>${styles}</head>
         <body>
             <div class="ticket">
-                ${card.querySelector("h3") ? `<div class="title">${card.querySelector("h3").innerText}</div>` : ""}
+                <div class="title">${card.querySelector("h3") ? card.querySelector("h3").innerText : 'Billet OMT'}</div>
                 ${qrHtml}
-                ${[...card.querySelectorAll("p")].map(p => `<div class="small">${p.innerText}</div>`).join("")}
+                <div class="info-content">
+                    ${[...card.querySelectorAll("p")].filter(p => !p.classList.contains('font-mono')).map(p => `<div class="info-line">${p.innerText}</div>`).join("")}
+                </div>
+                ${card.querySelector(".font-mono") ? `<div class="mono">${card.querySelector(".font-mono").innerText}</div>` : ""}
             </div>
         </body></html>
     `);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
+}
+
+function downloadAllTickets() {
+    const tickets = OMT_STATE.lastPurchase || [];
+    if (tickets.length === 0) return;
+
+    const printWindow = window.open("", "_blank", "width=800,height=900");
+    if (!printWindow) return;
+
+    const styles = `
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8fafc; }
+            .page-wrapper {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 40px;
+                box-sizing: border-box;
+                page-break-after: always;
+            }
+            .ticket {
+                border: 2px dashed #cbd5e1;
+                border-radius: 20px;
+                padding: 40px;
+                background: white;
+                width: 100%;
+                max-width: 500px;
+                box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            }
+            .title { font-size: 28px; font-weight: bold; margin-bottom: 15px; color: #1e293b; text-align: center; }
+            .mono { font-family: monospace; font-size: 14px; color: #64748b; text-align: center; margin-bottom: 25px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            .info-item { font-size: 15px; color: #334155; font-weight: bold; }
+            .info-label { color: #64748b; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }
+            .qr { display: flex; justify-content: center; margin: 25px 0; }
+            .qr img, .qr canvas { width: 220px !important; height: 220px !important; }
+            @media print {
+                body { background: white; }
+                .page-wrapper { padding: 0; }
+                .ticket { border: 2px solid #000; box-shadow: none; page-break-after: always; }
+            }
+        </style>
+    `;
+
+    let html = `<html><head><title>Mes Billets OMT</title>${styles}</head><body>`;
+
+    tickets.forEach(t => {
+        const card = document.getElementById(`qr-${t.id}`)?.closest(".border-2");
+        const qrImg = card ? (card.querySelector("img") || card.querySelector("canvas")) : null;
+        const qrHtml = qrImg ? `<div class="qr">${qrImg.outerHTML}</div>` : "";
+        const event = getEventById(t.event_id);
+
+        html += `
+            <div class="page-wrapper">
+                <div class="ticket">
+                    <div class="title">${event ? event.titre : 'OMT Event'}</div>
+                    ${qrHtml}
+                    <div class="mono">REF: ${t.qr_code_data}</div>
+                    <div class="info-grid">
+                        <div>
+                            <div class="info-label">Participant</div>
+                            <div class="info-item">${t.participant_name}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Type de billet</div>
+                            <div class="info-item">${t.type.toUpperCase()}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Prix</div>
+                            <div class="info-item">${t.prix}€</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Statut</div>
+                            <div class="info-item">VALIDE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += `</body></html>`;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+        printWindow.print();
+    }, 500);
 }

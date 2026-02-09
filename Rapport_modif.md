@@ -114,6 +114,16 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
     - La limite de quantité est désormais basée dynamiquement sur le **stock réel restant** pour la catégorie sélectionnée (ou le total de l'événement).
     - Mise à jour de l'interface pour bloquer l'incrémentation dès que le stock maximum est atteint, avec un message d'information à l'utilisateur.
     - Correction de la persistance de l'ID de catégorie lors du changement de quantité pour garantir l'intégrité de la commande.
+- **Rendu des Billets (`js/pages/public.js` & `js/router.js`)** : 
+    - Sécurisation du rendu des QR codes pour les commandes volumineuses (plus de 10 billets).
+    - Ajout de mécanismes de secours (fallback) affichant le code texte si la génération d'image échoue pour un billet.
+    - Consolidation des pages de succès pour unifier la logique d'affichage et éviter les conflits de rendu.
+- **Téléchargement Groupé (`js/pages/public.js`)** : 
+    - Ajout d'un bouton "Télécharger tous les billets" sur la page de succès.
+    - Création d'une fonction `downloadAllTickets` générant un document PDF/Impression unique regroupant tous les billets de la commande avec une mise en page optimisée.
+- **Centrage des Billets (Interface PDF)** : 
+    - Amélioration de la mise en page CSS pour le téléchargement des billets.
+    - Utilisation de Flexbox pour centrer parfaitement le contenu du billet verticalement et horizontalement sur la page, que ce soit pour un billet unique ou pour une série complète.
 
 ---
 

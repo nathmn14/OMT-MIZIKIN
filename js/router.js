@@ -75,11 +75,6 @@ const Router = {
                 app.innerHTML = PageCheckout(data);
                 break;
             case 'success':
-                app.innerHTML = PageSuccess(data);
-                setTimeout(() => {
-                    if (typeof renderQrCodes === "function") renderQrCodes();
-                }, 0);
-                break;
             case 'ticket-success':
                 app.innerHTML = PageTicketSuccess(data);
                 setTimeout(() => {
