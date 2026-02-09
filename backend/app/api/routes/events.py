@@ -1,10 +1,12 @@
-﻿from fastapi import APIRouter, Depends, HTTPException
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from app.api.deps import require_role, require_roles
 from app.db.session import get_session
 from app.models.event import Event
 from app.models.ticket_category import TicketCategory
+from app.models.user import User
 from app.schemas.event import EventCreate, EventOut
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -56,3 +58,17 @@ async def create_event(req: EventCreate, session: AsyncSession = Depends(get_ses
         select(Event).options(selectinload(Event.categories)).where(Event.id == event.id)
     )
     return result.scalars().first()
+
+@router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_event(
+    event_id: int,
+    session: AsyncSession = Depends(get_session),
+    _: User = Depends(require_roles(["admin", "organisateur"]))
+):
+    """Supprime un événement (Admin ou Organisateur)"""
+    event = await session.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    await session.delete(event)
+    await session.commit()

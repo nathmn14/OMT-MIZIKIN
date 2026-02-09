@@ -7,7 +7,7 @@ class Ticket(Base):
     __tablename__ = "tickets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    event_id: Mapped[int] = mapped_column(ForeignKey("events.id"))
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
     category_id: Mapped[int | None] = mapped_column(ForeignKey("ticket_categories.id"), nullable=True)
     type: Mapped[str] = mapped_column(String(50))
     price: Mapped[int] = mapped_column(Integer)
