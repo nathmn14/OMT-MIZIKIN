@@ -64,9 +64,13 @@ function PageDashboardOrga() {
                                             ${sold}
                                         </td>
                                         <td class="p-3 sm:p-4 text-right">
-                                            <div class="flex justify-end gap-2">
+                                            <div class="flex justify-end items-center gap-3">
                                                 <button onclick="Router.navigate('manage-event', {eventId: ${e.id}})" 
-                                                        class="text-blue-600 hover:text-blue-800 font-medium text-sm">Gerer</button>
+                                                        class="text-blue-600 hover:text-blue-800 font-bold text-sm">Gérer</button>
+                                                <button onclick="editEvent(${e.id})" 
+                                                        class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-bold text-xs hover:bg-blue-100 transition">
+                                                    Modifier
+                                                </button>
                                                 <button onclick="deleteEventOrga(${e.id})" 
                                                         class="text-red-500 hover:text-red-700 transition" 
                                                         title="Supprimer l'événement">
@@ -89,20 +93,32 @@ function PageCreateEvent() {
     ticketCategories = [];
     uploadedImageUrl = null;
 
-    const draft = localStorage.getItem('event_draft');
-    let title = '', date = '', time = '', location = '', desc = '';
+    let title = '', date = '', time = '', location = '', desc = '', eventId = null;
 
-    if (draft) {
-        try {
-            const d = JSON.parse(draft);
-            title = d.title || '';
-            date = d.date || '';
-            time = d.time || '';
-            location = d.location || '';
-            desc = d.desc || '';
-            ticketCategories = d.categories || [];
-            uploadedImageUrl = d.image || null;
-        } catch (e) { }
+    if (Router.currentData && Router.currentData.event) {
+        const e = Router.currentData.event;
+        eventId = e.id;
+        title = e.titre || '';
+        date = e.date || '';
+        time = e.time || '';
+        location = e.lieu || '';
+        desc = e.description || '';
+        ticketCategories = e.categories || [];
+        uploadedImageUrl = e.image || null;
+    } else {
+        const draft = localStorage.getItem('event_draft');
+        if (draft) {
+            try {
+                const d = JSON.parse(draft);
+                title = d.title || '';
+                date = d.date || '';
+                time = d.time || '';
+                location = d.location || '';
+                desc = d.desc || '';
+                ticketCategories = d.categories || [];
+                uploadedImageUrl = d.image || null;
+            } catch (e) { }
+        }
     }
 
     if (ticketCategories.length === 0) {
@@ -118,8 +134,8 @@ function PageCreateEvent() {
                     <button onclick="Router.navigate('dashboard-orga')" class="text-slate-500 hover:text-slate-800 flex items-center gap-2 mb-4 font-medium">
                         <- Retour au Dashboard
                     </button>
-                    <h1 class="text-3xl font-extrabold text-slate-900">Studio de Creation</h1>
-                    <p class="text-slate-600 mt-2">Configurez votre evenement, vos billets et publiez en quelques clics.</p>
+                    <h1 class="text-3xl font-extrabold text-slate-900">${eventId ? 'Modifier l\'événement' : 'Studio de Creation'}</h1>
+                    <p class="text-slate-600 mt-2">${eventId ? 'Mettez à jour les détails de votre événement.' : 'Configurez votre evenement, vos billets et publiez en quelques clics.'}</p>
                 </div>
 
                 <div class="flex gap-8 flex-col lg:flex-row">
@@ -139,7 +155,7 @@ function PageCreateEvent() {
                     </aside>
 
                     <main class="flex-1">
-                        <form onsubmit="publishEvent(event)" class="space-y-8" onchange="saveDraft()">
+                        <form onsubmit="publishEvent(event, ${eventId})" class="space-y-8" onchange="saveDraft()">
                             <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8">
                                 <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span class="bg-blue-100 text-blue-600 w-10 h-10 rounded-full flex items-center justify-center font-bold">1</span>
@@ -228,7 +244,7 @@ function PageCreateEvent() {
                                 </button>
                                 <button type="submit" id="publish-btn"
                                         class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-4 rounded-lg font-bold text-lg shadow-xl transition">
-                                    Publier l'evenement
+                                    ${eventId ? 'Mettre à jour' : 'Publier l\'evenement'}
                                 </button>
                             </div>
                         </form>
@@ -263,6 +279,9 @@ function PageManageEvent(eventId) {
                     <h1 class="text-3xl font-bold text-slate-900">${event.titre}</h1>
                 </div>
                 <div class="flex gap-3">
+                    <button onclick="editEvent(${event.id})" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-200 transition">
+                        Modifier l'événement
+                    </button>
                     <button onclick="Router.navigate('dashboard-verif')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition">
                         Scanner des billets
                     </button>
@@ -431,7 +450,7 @@ function saveDraft() {
     localStorage.setItem('event_draft', JSON.stringify(draft));
 }
 
-async function publishEvent(e) {
+async function publishEvent(e, eventId = null) {
     e.preventDefault();
 
     const title = document.getElementById('evt-title').value;
@@ -460,10 +479,10 @@ async function publishEvent(e) {
 
     const btn = document.getElementById('publish-btn');
     btn.disabled = true;
-    btn.textContent = "Publication...";
+    btn.textContent = eventId ? "Mise à jour..." : "Publication...";
 
     try {
-        await apiCreateEvent({
+        const payload = {
             title,
             description: desc,
             date,
@@ -473,16 +492,23 @@ async function publishEvent(e) {
             price_standard: priceStandard,
             price_vip: priceVip,
             categories
-        });
+        };
+
+        if (eventId) {
+            await apiUpdateEvent(eventId, payload);
+            showToast("Evenement mis à jour avec succes", "success");
+        } else {
+            await apiCreateEvent(payload);
+            showToast("Evenement publie avec succes", "success");
+        }
 
         localStorage.removeItem('event_draft');
-        showToast("Evenement publie avec succes", "success");
         Router.navigate('dashboard-orga');
     } catch (err) {
-        showToast(err.message || "Erreur lors de la publication", "error");
+        showToast(err.message || "Erreur lors de l'enregistrement", "error");
     } finally {
         btn.disabled = false;
-        btn.textContent = "Publier l'evenement";
+        btn.textContent = eventId ? "Mettre à jour" : "Publier l'evenement";
     }
 }
 
@@ -500,5 +526,14 @@ async function deleteEventOrga(eventId) {
         Router.navigate('dashboard-orga');
     } catch (err) {
         showToast(err.message || "Erreur lors de la suppression", "error");
+    }
+}
+
+async function editEvent(eventId) {
+    try {
+        const event = await apiGetEvent(eventId);
+        Router.navigate('create-event', { event });
+    } catch (err) {
+        showToast("Erreur lors de la récupération de l'événement", "error");
     }
 }

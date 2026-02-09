@@ -29,3 +29,14 @@ class EventOut(EventCreate):
 
     class Config:
         from_attributes = True
+
+class EventUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    date: str | None = None
+    time: str | None = None
+    location: str | None = None
+    image_url: str | None = None
+    price_standard: int | None = None
+    price_vip: int | None = None
+    categories: list[TicketCategoryCreate] | None = None

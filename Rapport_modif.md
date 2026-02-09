@@ -88,6 +88,23 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
 
 ---
 
+## 🛠️ Mise à jour du 9 Février 2026 (14:45)
+**Objet :** Ajout de la modification des événements pour les organisateurs et administrateurs.
+
+### 🔹 Corrections Backend
+- **Schémas API (`backend/app/schemas/event.py`)** : Ajout du schéma `EventUpdate` permettant des mises à jour partielles ou complètes des données de l'événement.
+- **Points d'accès (`backend/app/api/routes/events.py`)** : Implémentation de la route `PUT /api/events/{id}` protégée. Cette route gère également la mise à jour dynamique des catégories de billets (suppression et remplacement propre).
+
+### 🔹 Améliorations Frontend
+- **API Client (`js/db.js`)** : Ajout de la fonction `apiUpdateEvent`.
+- **Interface Organisateur (`js/pages/organizer.js`)** : 
+    - Ajout d'un bouton "Modifier" dans le tableau de bord et dans la page de gestion détaillée de l'événement.
+    - Evolution de la page "Studio de Création" (`PageCreateEvent`) pour basculer automatiquement en mode édition si un événement est passé en paramètre.
+    - Pré-remplissage automatique de tous les champs (titre, date, heure, lieu, description, catégories de billets et affiche).
+    - Mise à jour dynamique des textes et boutons selon le mode (Création vs Modification).
+
+---
+
 ## 🛠️ Mise à jour du 9 Février 2026 (14:00)
 **Objet :** Extension de la suppression des événements aux organisateurs.
 

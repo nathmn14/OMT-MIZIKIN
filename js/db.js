@@ -191,6 +191,17 @@ async function apiDeleteEvent(eventId) {
     return apiFetch(`/events/${eventId}`, { method: "DELETE" });
 }
 
+async function apiUpdateEvent(eventId, payload) {
+    const data = await apiFetch(`/events/${eventId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload)
+    });
+    const event = normalizeEvent(data);
+    const idx = OMT_STATE.events.findIndex(e => e.id === event.id);
+    if (idx !== -1) OMT_STATE.events[idx] = event;
+    return event;
+}
+
 async function apiCheckout(payload) {
     const data = await apiFetch("/tickets/checkout", {
         method: "POST",

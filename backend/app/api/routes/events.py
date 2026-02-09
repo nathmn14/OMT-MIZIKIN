@@ -7,7 +7,7 @@ from app.db.session import get_session
 from app.models.event import Event
 from app.models.ticket_category import TicketCategory
 from app.models.user import User
-from app.schemas.event import EventCreate, EventOut
+from app.schemas.event import EventCreate, EventOut, EventUpdate
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -54,6 +54,48 @@ async def create_event(req: EventCreate, session: AsyncSession = Depends(get_ses
 
     await session.commit()
 
+    result = await session.execute(
+        select(Event).options(selectinload(Event.categories)).where(Event.id == event.id)
+    )
+    return result.scalars().first()
+@router.put("/{event_id}", response_model=EventOut)
+async def update_event(
+    event_id: int,
+    req: EventUpdate,
+    session: AsyncSession = Depends(get_session),
+    _: User = Depends(require_roles(["admin", "organisateur"]))
+):
+    """Met à jour un événement existant (Admin ou Organisateur)"""
+    event = await session.get(Event, event_id, options=[selectinload(Event.categories)])
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Mise à jour des champs de base
+    for field, value in req.model_dump(exclude={"categories"}, exclude_unset=True).items():
+        setattr(event, field, value)
+
+    # Gestion des catégories si fournies
+    if req.categories is not None:
+        # Supprimer les anciennes catégories
+        from sqlalchemy import delete
+        await session.execute(delete(TicketCategory).where(TicketCategory.event_id == event_id))
+        
+        # Ajouter les nouvelles
+        total_stock = 0
+        for c in req.categories:
+            session.add(TicketCategory(
+                event_id=event.id,
+                name=c.name,
+                price=c.price,
+                stock=c.stock,
+            ))
+            total_stock += c.stock
+        
+        event.tickets_remaining = total_stock
+
+    await session.commit()
+    
+    # Rafraîchir pour renvoyer l'objet complet
     result = await session.execute(
         select(Event).options(selectinload(Event.categories)).where(Event.id == event.id)
     )
