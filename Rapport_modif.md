@@ -88,6 +88,20 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
 
 ---
 
+## 🛠️ Mise à jour du 9 Février 2026 (14:00)
+**Objet :** Extension de la suppression des événements aux organisateurs.
+
+### 🔹 Corrections Backend
+- **Dépendances API (`backend/app/api/deps.py`)** : Ajout de la fonction `require_roles(roles: list[str])` permettant d'autoriser plusieurs rôles sur un même point de terminaison.
+- **Points d'accès (`backend/app/api/routes/events.py`)** : Mise à jour de la route de suppression pour autoriser à la fois les administrateurs et les organisateurs.
+
+### 🔹 Améliorations Frontend
+- **Interface Organisateur (`js/pages/organizer.js`)** : 
+    - Ajout d'un bouton de suppression (icône poubelle) à côté du bouton "Gérer" pour chaque événement dans le tableau de bord.
+    - Implémentation de la fonction `deleteEventOrga` avec confirmation de sécurité et notification de succès.
+
+---
+
 ## 🛠️ Mise à jour du 9 Février 2026 (14:45)
 **Objet :** Ajout de la modification des événements pour les organisateurs et administrateurs.
 
@@ -126,15 +140,3 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
     - Utilisation de Flexbox pour centrer parfaitement le contenu du billet verticalement et horizontalement sur la page, que ce soit pour un billet unique ou pour une série complète.
 
 ---
-
-## 🛠️ Mise à jour du 9 Février 2026 (14:00)
-**Objet :** Extension de la suppression des événements aux organisateurs.
-
-### 🔹 Corrections Backend
-- **Dépendances API (`backend/app/api/deps.py`)** : Ajout de la fonction `require_roles(roles: list[str])` permettant d'autoriser plusieurs rôles sur un même point de terminaison.
-- **Points d'accès (`backend/app/api/routes/events.py`)** : Mise à jour de la route de suppression pour autoriser à la fois les administrateurs et les organisateurs.
-
-### 🔹 Améliorations Frontend
-- **Interface Organisateur (`js/pages/organizer.js`)** : 
-    - Ajout d'un bouton de suppression (icône poubelle) à côté du bouton "Gérer" pour chaque événement dans le tableau de bord.
-    - Implémentation de la fonction `deleteEventOrga` avec confirmation de sécurité et notification de succès.
