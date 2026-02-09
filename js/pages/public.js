@@ -110,6 +110,8 @@ function PageCheckout(data) {
     const event = getEventById(data.eventId);
     const quantity = data.quantity || 1;
     const totalPrice = data.prix * quantity;
+    const category = data.categoryId ? event.categories.find(c => c.id === data.categoryId) : null;
+    const maxStock = category ? category.stock : event.billets_restants;
 
     return `
         ${Navbar(false)}
@@ -130,17 +132,17 @@ function PageCheckout(data) {
                 <div class="mb-3 sm:mb-4">
                     <label class="block text-slate-700 font-medium mb-2 text-sm sm:text-base">Nombre de billets</label>
                     <div class="flex items-center gap-3">
-                        <button type="button" onclick="updateQuantity(${data.eventId}, '${data.type}', ${data.prix}, -1)" 
+                        <button type="button" onclick="updateQuantity(${data.eventId}, '${data.type}', ${data.prix}, -1, ${data.categoryId || 'null'})" 
                                 class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold w-10 h-10 rounded-lg transition text-lg">
                             -
                         </button>
-                        <input type="number" id="ticket-quantity" value="${quantity}" min="1" max="10" readonly
+                        <input type="number" id="ticket-quantity" value="${quantity}" min="1" max="${maxStock}" readonly
                                class="w-20 text-center border-2 border-slate-200 rounded-lg py-2 font-bold text-lg">
-                        <button type="button" onclick="updateQuantity(${data.eventId}, '${data.type}', ${data.prix}, 1)" 
+                        <button type="button" onclick="updateQuantity(${data.eventId}, '${data.type}', ${data.prix}, 1, ${data.categoryId || 'null'})" 
                                 class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold w-10 h-10 rounded-lg transition text-lg">
                             +
                         </button>
-                        <span class="text-slate-600 text-xs sm:text-sm ml-2">(${event.billets_restants} places disponibles)</span>
+                        <span class="text-slate-600 text-xs sm:text-sm ml-2">(${maxStock} places disponibles)</span>
                     </div>
                 </div>
                 
@@ -268,7 +270,7 @@ function selectTicket(eventId, type, prix, categoryId = null) {
     Router.navigate('checkout', { eventId, type, prix, categoryId });
 }
 
-function updateQuantity(eventId, type, prix, change) {
+function updateQuantity(eventId, type, prix, change, categoryId = null) {
     const quantityInput = document.getElementById('ticket-quantity');
     const displayQuantity = document.getElementById('display-quantity');
     const totalPriceElement = document.getElementById('total-price');
@@ -277,13 +279,16 @@ function updateQuantity(eventId, type, prix, change) {
     let currentQuantity = parseInt(quantityInput.value) || 1;
     let newQuantity = currentQuantity + change;
 
-    if (newQuantity < 1) newQuantity = 1;
-    if (newQuantity > 10) newQuantity = 10;
-
     const event = getEventById(eventId);
-    if (newQuantity > event.billets_restants) {
-        showToast(`Desole, il ne reste que ${event.billets_restants} places disponibles.`, "error");
-        return;
+    const category = categoryId ? event.categories.find(c => c.id === categoryId) : null;
+    const maxStock = category ? category.stock : event.billets_restants;
+
+    if (newQuantity < 1) newQuantity = 1;
+    if (newQuantity > maxStock) {
+        newQuantity = maxStock;
+        if (change > 0) {
+            showToast(`Desole, il ne reste que ${maxStock} places disponibles pour cette categorie.`, "error");
+        }
     }
 
     quantityInput.value = newQuantity;
@@ -293,7 +298,7 @@ function updateQuantity(eventId, type, prix, change) {
     totalPriceElement.textContent = totalPrice + '€';
     submitTotal.textContent = totalPrice + '€';
 
-    Router.currentData = { eventId, type, prix, quantity: newQuantity };
+    Router.currentData = { eventId, type, prix, quantity: newQuantity, categoryId };
 }
 
 async function processCheckout(e, eventId, type, prix, categoryId) {

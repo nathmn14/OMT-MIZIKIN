@@ -105,6 +105,18 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
 
 ---
 
+## 🛠️ Mise à jour du 9 Février 2026 (17:00)
+**Objet :** Amélioration du processus d'achat de billets (limites de quantité).
+
+### 🔹 Améliorations Frontend
+- **Page de Paiement (`js/pages/public.js`)** : 
+    - Suppression de la limite arbitraire de 10 billets maximum par achat.
+    - La limite de quantité est désormais basée dynamiquement sur le **stock réel restant** pour la catégorie sélectionnée (ou le total de l'événement).
+    - Mise à jour de l'interface pour bloquer l'incrémentation dès que le stock maximum est atteint, avec un message d'information à l'utilisateur.
+    - Correction de la persistance de l'ID de catégorie lors du changement de quantité pour garantir l'intégrité de la commande.
+
+---
+
 ## 🛠️ Mise à jour du 9 Février 2026 (14:00)
 **Objet :** Extension de la suppression des événements aux organisateurs.
 
