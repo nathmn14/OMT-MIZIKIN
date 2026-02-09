@@ -8,5 +8,5 @@ class Scan(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"))
-    verifier_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    verifier_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     scanned_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
