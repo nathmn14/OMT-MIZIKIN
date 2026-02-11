@@ -21,7 +21,15 @@ const Router = {
     currentData: null,
     currentPage: 'home',
 
-    init: function () {
+    init: async function () {
+        if (OMT_STATE.accessToken) {
+            try {
+                await apiMe();
+            } catch (e) {
+                saveTokens(null, null);
+            }
+        }
+
         try {
             const saved = sessionStorage.getItem('omt_route');
             if (saved) {
@@ -89,7 +97,10 @@ const Router = {
                 break;
             case 'dashboard-orga':
                 renderLoading("Chargement du tableau de bord...");
-                await apiListEvents();
+                if (!OMT_STATE.currentUser) {
+                    try { await apiMe(); } catch (e) { Router.navigate('login'); return; }
+                }
+                await apiListEvents(OMT_STATE.currentUser.id);
                 await apiListTickets();
                 app.innerHTML = PageDashboardOrga();
                 break;

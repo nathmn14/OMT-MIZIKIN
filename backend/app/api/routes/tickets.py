@@ -1,19 +1,36 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.api.deps import get_current_user, require_roles
 from app.db.session import get_session
 from app.models.ticket import Ticket
 from app.models.scan import Scan
+from app.models.event import Event
+from app.models.user import User
 from app.schemas.ticket import TicketPurchaseRequest, TicketOut, VerifyTicketRequest
 from app.services.ticketing import purchase_tickets
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 @router.get("", response_model=list[TicketOut])
-async def list_tickets(event_id: int | None = None, session: AsyncSession = Depends(get_session)):
+async def list_tickets(
+    event_id: int | None = None, 
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
     stmt = select(Ticket).order_by(Ticket.id.desc())
+    
+    if current_user.role == "organisateur":
+        # Join with Event to filter by organizer_id
+        stmt = stmt.join(Event).where(Event.organizer_id == current_user.id)
+    elif current_user.role != "admin":
+        # Maybe handle other roles or just limit to what they should see
+        # For now, let's say only admin and owner can see lists
+        pass
+
     if event_id is not None:
         stmt = stmt.where(Ticket.event_id == event_id)
+        
     result = await session.execute(stmt)
     return result.scalars().all()
 

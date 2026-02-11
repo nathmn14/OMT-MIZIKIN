@@ -164,9 +164,10 @@ async function apiMe() {
     return data;
 }
 
-async function apiListEvents() {
+async function apiListEvents(organizerId = null) {
     OMT_STATE.loading.events = true;
-    const data = await apiFetch("/events", { method: "GET" });
+    const q = organizerId ? `?organizer_id=${organizerId}` : "";
+    const data = await apiFetch(`/events${q}`, { method: "GET" });
     OMT_STATE.events = data.map(normalizeEvent);
     OMT_STATE.loading.events = false;
     return OMT_STATE.events;

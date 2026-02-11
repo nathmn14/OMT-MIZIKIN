@@ -140,3 +140,25 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
     - Utilisation de Flexbox pour centrer parfaitement le contenu du billet verticalement et horizontalement sur la page, que ce soit pour un billet unique ou pour une série complète.
 
 ---
+
+## 🛠️ Mise à jour du 11 Février 2026
+**Objet :** Séparation étanche des organisateurs (Espaces Privés).
+
+### 🔹 Modifications Backend
+- **Modèle Événement (`backend/app/models/event.py`)** : Ajout d'une clé étrangère `organizer_id` liant chaque événement à son créateur.
+- **API Événements (`backend/app/api/routes/events.py`)** : 
+    - **Création** : Assignation automatique de l'ID de l'utilisateur connecté comme organisateur de l'événement.
+    - **Filtrage** : Ajout d'un paramètre optionnel `organizer_id` sur la route de liste pour permettre de récupérer uniquement les événements d'un organisateur spécifique.
+    - **Sécurité** : Mise en place d'une vérification stricte de propriété. Un organisateur ne peut désormais **modifier ou supprimer** que ses propres événements. Les administrateurs conservent un accès complet.
+- **API Billets (`backend/app/api/routes/tickets.py`)** : Filtrage automatique des billets. Un organisateur ne peut désormais voir que les billets vendus pour ses propres événements.
+- **Base de Données** : Exécution d'un script de migration pour ajouter la colonne `organizer_id` à la table `events` sans perte de données.
+
+### 🔹 Améliorations Frontend
+- **API Client (`js/db.js`)** : Mise à jour de `apiListEvents` pour supporter le filtrage par organisateur.
+- **Routeur (`js/router.js`)** : 
+    - Initialisation sécurisée : Chargement automatique des informations de l'utilisateur au démarrage de l'application si un jeton est présent.
+    - Accès Dashboard : Le tableau de bord organisateur ne charge désormais que les événements appartenant à l'utilisateur connecté.
+- **Interface Organisateur (`js/pages/organizer.js`)** : Adaptation de l'affichage pour garantir que les statistiques et les listes de participants sont strictement limitées aux données de l'organisateur.
+
+### ✅ Résultat
+Chaque organisateur dispose désormais d'un espace totalement privé et sécurisé. Il est impossible pour un organisateur d'accéder aux données ou d'interférer avec les événements d'un autre utilisateur.

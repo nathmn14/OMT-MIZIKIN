@@ -64,6 +64,9 @@ async def reject_user(session: AsyncSession, user_id: int) -> bool:
     return True
 
 
+from datetime import datetime
+from app.models.event import Event
+
 async def update_user_role(session: AsyncSession, user_id: int, new_role: str) -> User:
     """Met à jour le rôle d'un utilisateur"""
     # Validation des rôles autorisés
@@ -75,6 +78,19 @@ async def update_user_role(session: AsyncSession, user_id: int, new_role: str) -
     if not user:
         raise ValueError("User not found")
     
+    # Si l'utilisateur est un organisateur, vérifier s'il a des événements futurs
+    if user.role == "organisateur":
+        today = datetime.now().strftime("%Y-%m-%d")
+        # On cherche s'il existe au moins un événement à partir d'aujourd'hui
+        result = await session.execute(
+            select(Event).where(
+                Event.organizer_id == user_id,
+                Event.date >= today
+            ).limit(1)
+        )
+        if result.scalars().first():
+            raise ValueError("Impossible de modifier le rôle : cet organisateur a encore des événements programmés.")
+
     user.role = new_role
     await session.commit()
     await session.refresh(user)

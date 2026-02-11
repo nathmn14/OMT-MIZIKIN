@@ -9,7 +9,7 @@
 ```powershell
 cd backend
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1        ou ./env/scripts/activate
 pip install -r requirements.txt
 
 # Init DB with demo data (optional)

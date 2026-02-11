@@ -24,6 +24,7 @@ class EventCreate(BaseModel):
 
 class EventOut(EventCreate):
     id: int
+    organizer_id: int | None = None
     tickets_remaining: int
     categories: list[TicketCategoryOut] = Field(default_factory=list)
 

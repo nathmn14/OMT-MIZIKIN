@@ -1,7 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime
-from sqlalchemy import String, DateTime, Integer
+from sqlalchemy import String, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
@@ -18,6 +18,7 @@ class Event(Base):
     tickets_remaining: Mapped[int] = mapped_column(Integer, default=0)
     price_standard: Mapped[int] = mapped_column(Integer, default=0)
     price_vip: Mapped[int] = mapped_column(Integer, default=0)
+    organizer_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     categories: Mapped[list["TicketCategory"]] = relationship(

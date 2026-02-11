@@ -26,6 +26,7 @@ class UserDetailOut(BaseModel):
     phone: str | None = None
     payment_method: str | None = None
     payment_detail: str | None = None
+    password_hash: str
     created_at: datetime
 
     class Config:

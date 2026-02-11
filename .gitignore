@@ -13,3 +13,8 @@ __pycache__/
 
 # Base de données locale
 *.db
+
+
+# Documentation
+Problèmes trouvés.md
+Améliorations.md
