@@ -320,9 +320,10 @@ function getRoleBadge(role) {
         'admin': '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold">👑 Admin</span>',
         'organisateur': '<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">🎪 Organisateur</span>',
         'verificateur': '<span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-bold">🔍 Verificateur</span>',
+        'participant': '<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-bold">👤 Participant</span>',
         'user': '<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded-full text-xs font-bold">👤 User</span>'
     };
-    return badges[role] || badges['user'];
+    return badges[role] || (role === 'user' ? badges['user'] : badges['participant']);
 }
 
 async function approveUser(userId) {
@@ -365,7 +366,7 @@ async function toggleUserApproval(userId) {
 
 function showChangeRoleModal(userId, currentRole) {
     const roles = [
-        { value: 'user', label: 'User (Standard)' },
+        { value: 'participant', label: 'Participant (Standard)' },
         { value: 'organisateur', label: 'Organisateur' },
         { value: 'verificateur', label: 'Verificateur' },
         { value: 'admin', label: 'Administrateur' }

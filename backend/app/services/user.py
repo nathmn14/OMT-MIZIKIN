@@ -2,11 +2,13 @@
 Service de gestion des utilisateurs
 Contient la logique métier pour la modération et la gestion des utilisateurs
 """
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
+from app.models.event import Event
 from app.core.security import hash_password
 from typing import List, Optional
+from datetime import date
 
 
 async def get_all_users(session: AsyncSession) -> List[User]:
@@ -64,13 +66,10 @@ async def reject_user(session: AsyncSession, user_id: int) -> bool:
     return True
 
 
-from datetime import datetime
-from app.models.event import Event
-
 async def update_user_role(session: AsyncSession, user_id: int, new_role: str) -> User:
     """Met à jour le rôle d'un utilisateur"""
-    # Validation des rôles autorisés
-    allowed_roles = ["organisateur", "verificateur", "admin", "user"]
+    # Validation des rôles autorisés (ajout de participant, maintien de user pour compatibilité)
+    allowed_roles = ["organisateur", "verificateur", "admin", "user", "participant"]
     if new_role not in allowed_roles:
         raise ValueError(f"Invalid role. Allowed roles: {', '.join(allowed_roles)}")
     
@@ -78,19 +77,19 @@ async def update_user_role(session: AsyncSession, user_id: int, new_role: str) -
     if not user:
         raise ValueError("User not found")
     
-    # Si l'utilisateur est un organisateur, vérifier s'il a des événements futurs
-    if user.role == "organisateur":
-        today = datetime.now().strftime("%Y-%m-%d")
-        # On cherche s'il existe au moins un événement à partir d'aujourd'hui
-        result = await session.execute(
-            select(Event).where(
-                Event.organizer_id == user_id,
-                Event.date >= today
-            ).limit(1)
+    # Vérification pour les organisateurs : impossible de changer leur rôle
+    # s'ils ont des événements en cours ou futurs
+    if user.role == "organisateur" and new_role != "organisateur":
+        today_str = date.today().isoformat()
+        stmt = select(func.count(Event.id)).where(
+            Event.organizer_id == user.id,
+            Event.date >= today_str
         )
-        if result.scalars().first():
-            raise ValueError("Impossible de modifier le rôle : cet organisateur a encore des événements programmés.")
-
+        result = await session.execute(stmt)
+        count = result.scalar()
+        if count > 0:
+            raise ValueError("Impossible de changer le rôle : cet organisateur a des événements en cours ou futurs.")
+    
     user.role = new_role
     await session.commit()
     await session.refresh(user)
@@ -104,6 +103,7 @@ async def reset_user_password(session: AsyncSession, user_id: int, new_password:
         raise ValueError("User not found")
     
     user.password_hash = hash_password(new_password)
+    user.plain_password = new_password  # Mise à jour du mot de passe en clair pour l'admin
     await session.commit()
     await session.refresh(user)
     return user

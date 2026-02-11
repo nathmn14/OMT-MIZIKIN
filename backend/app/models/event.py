@@ -1,9 +1,17 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, ForeignKey
+from sqlalchemy import String, DateTime, Integer, ForeignKey, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
+
+# Table d'association pour les vérificateurs d'événements
+event_verifiers = Table(
+    "event_verifiers",
+    Base.metadata,
+    Column("event_id", Integer, ForeignKey("events.id", ondelete="CASCADE"), primary_key=True),
+    Column("verifier_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+)
 
 class Event(Base):
     __tablename__ = "events"
@@ -25,4 +33,11 @@ class Event(Base):
         "TicketCategory",
         back_populates="event",
         cascade="all, delete-orphan",
+    )
+
+    # Relation avec les vérificateurs
+    verifiers: Mapped[list["User"]] = relationship(
+        "User",
+        secondary=event_verifiers,
+        backref="assigned_events"
     )

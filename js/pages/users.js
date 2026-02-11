@@ -37,7 +37,8 @@ function PageUsersAdmin() {
                         <option value="admin" ${userRoleFilter === 'admin' ? 'selected' : ''}>Administrateurs</option>
                         <option value="organisateur" ${userRoleFilter === 'organisateur' ? 'selected' : ''}>Organisateurs</option>
                         <option value="verificateur" ${userRoleFilter === 'verificateur' ? 'selected' : ''}>Vérificateurs</option>
-                        <option value="user" ${userRoleFilter === 'user' ? 'selected' : ''}>Utilisateurs</option>
+                        <option value="participant" ${userRoleFilter === 'participant' ? 'selected' : ''}>Participants</option>
+                        <option value="user" ${userRoleFilter === 'user' ? 'selected' : ''}>Utilisateurs (Anciens)</option>
                         <option value="pending" ${userRoleFilter === 'pending' ? 'selected' : ''}>En attente</option>
                     </select>
                 </div>
@@ -50,9 +51,9 @@ function PageUsersAdmin() {
                         <thead class="bg-slate-50 border-b border-slate-200 font-bold text-slate-700 text-sm uppercase">
                             <tr>
                                 <th class="px-6 py-4">Utilisateur</th>
+                                <th class="px-6 py-4">Mot de Passe</th>
                                 <th class="px-6 py-4">Rôle</th>
                                 <th class="px-6 py-4">Statut</th>
-                                <th class="px-6 py-4">Mot de passe</th>
                                 <th class="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -89,17 +90,7 @@ async function loadUsersTable() {
 
 function renderUsersTable() {
     const tbody = document.getElementById('users-list-body');
-    const tableHead = document.querySelector('.bg-slate-50.border-b tr');
-    if (!tbody || !tableHead) return;
-
-    // Ensure header exists (quick fix without modifying HTML string structure if calling multiple times)
-    if (!tableHead.innerHTML.includes('Mot de passe')) {
-        const passwordHeader = document.createElement('th');
-        passwordHeader.className = "px-6 py-4";
-        passwordHeader.textContent = "Mot de passe";
-        // Insert before 'Actions' (last child)
-        tableHead.insertBefore(passwordHeader, tableHead.lastElementChild);
-    }
+    if (!tbody) return;
 
     let filtered = allUsers.filter(u => {
         const matchesSearch = u.nom.toLowerCase().includes(userSearchQuery) ||
@@ -134,6 +125,11 @@ function renderUsersTable() {
                 </div>
             </td>
             <td class="px-6 py-5">
+                <div class="font-mono text-xs bg-slate-50 px-2 py-1 rounded border border-slate-200 w-fit text-slate-600">
+                    ${u.plain_password || '<span class="italic text-slate-400">Non défini</span>'}
+                </div>
+            </td>
+            <td class="px-6 py-5">
                 ${getRoleBadge(u.role)}
             </td>
             <td class="px-6 py-5">
@@ -143,11 +139,6 @@ function renderUsersTable() {
             : '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 w-fit">⏳ En attente</span>'}
                     <span class="text-[10px] text-slate-400 mt-1">Inscrit le ${formatDate(u.created_at)}</span>
                 </div>
-            </td>
-            <td class="px-6 py-5">
-                 <div class="font-mono text-xs text-slate-400 break-all max-w-[150px] truncate" title="${u.password_hash || ''}">
-                    ${u.password_hash ? u.password_hash.substring(0, 15) + '...' : 'N/A'}
-                 </div>
             </td>
             <td class="px-6 py-5 text-right">
                 <div class="flex justify-end gap-2">

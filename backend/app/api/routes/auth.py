@@ -19,6 +19,7 @@ async def register(req: RegisterRequest, session: AsyncSession = Depends(get_ses
     user = User(
         email=req.email,
         password_hash=hash_password(req.password),
+        plain_password=req.password,
         role=req.role,
         nom=req.nom,
         phone=req.phone,

@@ -161,4 +161,26 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
 - **Interface Organisateur (`js/pages/organizer.js`)** : Adaptation de l'affichage pour garantir que les statistiques et les listes de participants sont strictement limitées aux données de l'organisateur.
 
 ### ✅ Résultat
-Chaque organisateur dispose désormais d'un espace totalement privé et sécurisé. Il est impossible pour un organisateur d'accéder aux données ou d'interférer avec les événements d'un autre utilisateur.
+
+---
+
+## 🛠️ Mise à jour du 11 Février 2026 (18:30)
+**Objet :** Amélioration de la gestion des utilisateurs par l'administrateur.
+
+### 🔹 Modifications Backend
+- **Modèle Utilisateur (`backend/app/models/user.py`)** : Ajout du champ `plain_password` pour permettre à l'administrateur de visualiser les mots de passe des comptes pour faciliter le support et la gestion.
+- **Service Utilisateur (`backend/app/services/user.py`)** : 
+    - **Sécurité des Rôles** : L'administrateur ne peut plus modifier le rôle d'un organisateur si celui-ci a des événements **en cours ou futurs**. Cela garantit la stabilité de la plateforme pour les participants.
+    - **Support du rôle "Participant"** : Intégration complète du rôle participant (auparavant désigné comme "user" de manière générique).
+- **Enregistrement et Reset** : Mise à jour des processus pour maintenir le champ `plain_password` à jour.
+
+### 🔹 Améliorations Frontend
+- **Interface Utilisateurs (`js/pages/users.js`)** : 
+    - Ajout d'une colonne **"Mot de Passe"** dans le tableau de gestion. Les mots de passe sont affichés dans une police "monospaced" pour une meilleure lisibilité.
+    - Mise à jour des filtres pour inclure explicitement le rôle "Participant".
+- **Dashboard Admin (`js/pages/admin.js`)** : 
+    - Mise à jour du sélecteur de rôle dans la fenêtre modale pour inclure "Participant".
+    - Harmonisation des badges (nouveau badge orange pour les Participants).
+
+### ✅ Sécurité
+Le blocage du changement de rôle pour les organisateurs avec des événements actifs protège l'intégrité des ventes et de la validation des billets en cours.
