@@ -281,6 +281,29 @@ async function apiResetUserPassword(userId, newPassword) {
     });
 }
 
+// --- API VÉRIFICATEURS ---
+
+async function apiListVerifiers() {
+    return apiFetch("/users/verifiers", { method: "GET" });
+}
+
+async function apiListEventVerifiers(eventId) {
+    return apiFetch(`/events/${eventId}/verifiers`, { method: "GET" });
+}
+
+async function apiAddVerifier(eventId, userId) {
+    return apiFetch(`/events/${eventId}/verifiers/${userId}`, { method: "POST" });
+}
+
+async function apiRemoveVerifier(eventId, userId) {
+    return apiFetch(`/events/${eventId}/verifiers/${userId}`, { method: "DELETE" });
+}
+
+async function apiListAssignedEvents() {
+    const data = await apiFetch("/events/assigned/me", { method: "GET" });
+    return data.map(normalizeEvent);
+}
+
 function getEventById(id) {
     return OMT_STATE.events.find(e => e.id === id) || null;
 }

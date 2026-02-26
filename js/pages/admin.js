@@ -172,6 +172,11 @@ function renderAdminEvents() {
                 </td>
                 <td class="px-6 py-4 text-right">
                     <div class="flex justify-end gap-2">
+                        <button onclick="Router.navigate('manage-event', {eventId: ${event.id}})" 
+                                class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg transition font-bold text-xs"
+                                title="Gérer l'équipe de validation">
+                            Gérer
+                        </button>
                         <button onclick="deleteEventAdmin(${event.id})" 
                                 class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition"
                                 title="Supprimer l'événement">

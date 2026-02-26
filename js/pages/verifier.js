@@ -1,16 +1,105 @@
 ﻿// ============================================
-// PAGES VERIFICATEUR
+// PAGES VÉRIFICATEUR
 // ============================================
 
+// État global du vérificateur: evénement sélectionné
+let _selectedVerifEvent = null;
+
 function PageDashboardVerif() {
+    // Si aucun événement n'est sélectionné, afficher la liste de sélection
+    if (!_selectedVerifEvent) {
+        setTimeout(loadVerifEvents, 50);
+        return renderVerifEventList();
+    }
+    // Sinon afficher le scanner
     ensurePendingScans();
+    return renderVerifScanner(_selectedVerifEvent);
+}
+
+// --- Vue 1 : Sélection d'événement ---
+function renderVerifEventList() {
+    return `
+        ${Navbar()}
+        <div class="min-h-screen bg-slate-900 text-white">
+            <div class="max-w-lg mx-auto px-4 py-6 sm:py-12">
+                <button onclick="Router.navigate('home')" class="text-slate-400 hover:text-white flex items-center gap-2 mb-6 font-medium text-sm">
+                    &larr; Retour a l'accueil
+                </button>
+                <h1 class="text-2xl sm:text-3xl font-bold text-center mb-2">Espace Vérificateur</h1>
+                <p class="text-slate-400 text-center text-sm mb-8">Sélectionnez l'événement sur lequel vous travaillez.</p>
+
+                <div id="verif-events-list" class="space-y-3">
+                    <div class="text-center text-slate-400 py-12">
+                        <div class="text-4xl mb-3">⏳</div>
+                        <p>Chargement de vos événements...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function loadVerifEvents() {
+    const container = document.getElementById('verif-events-list');
+    if (!container) return;
+    try {
+        const events = await apiListAssignedEvents();
+        if (events.length === 0) {
+            container.innerHTML = `
+                <div class="bg-slate-800 rounded-xl p-8 text-center">
+                    <div class="text-5xl mb-4">&#x1F4CB;</div>
+                    <p class="text-slate-300 font-semibold">Aucun événement assigné</p>
+                    <p class="text-slate-500 text-sm mt-2">Contactez un organisateur pour qu'il vous affecte à un événement.</p>
+                </div>
+            `;
+            return;
+        }
+        container.innerHTML = events.map(e => `
+            <button onclick="selectVerifEvent(${e.id},'${(e.titre || '').replace(/'/g, "\\'")}')"
+                class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-blue-500 rounded-xl p-5 text-left transition group">
+                <div class="flex items-center justify-between">
+                    <div class="overflow-hidden">
+                        <p class="font-bold text-white text-lg truncate">${e.titre}</p>
+                        <p class="text-slate-400 text-sm mt-1">${formatDate ? formatDate(e.date) : e.date} &bull; ${e.lieu || ''}</p>
+                    </div>
+                    <span class="ml-4 text-blue-400 group-hover:text-blue-300 text-2xl shrink-0">&rsaquo;</span>
+                </div>
+            </button>
+        `).join('');
+    } catch (e) {
+        if (container) container.innerHTML = '<p class="text-red-400 text-sm text-center">Erreur lors du chargement des événements.</p>';
+    }
+}
+
+function selectVerifEvent(eventId, eventTitle) {
+    _selectedVerifEvent = { id: eventId, titre: eventTitle };
+    // Re-rendre la page complète avec le scanner
+    Router.navigate('dashboard-verif');
+}
+
+function changeVerifEvent() {
+    _selectedVerifEvent = null;
+    Router.navigate('dashboard-verif');
+}
+
+// --- Vue 2 : Scanner ---
+function renderVerifScanner(selEvt) {
     return `
         ${Navbar()}
         <div class="min-h-screen bg-slate-900 text-white">
             <div class="max-w-md mx-auto px-4 py-6 sm:py-12">
-                <button onclick="Router.navigate('home')" class="text-slate-400 hover:text-white flex items-center gap-2 mb-4 font-medium text-sm sm:text-base">
-                    <- Retour a l'accueil
-                </button>
+
+                <!-- Bandeau événement actif -->
+                <div class="bg-blue-900/60 border border-blue-700 rounded-xl px-4 py-3 mb-5 flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs text-blue-300 font-semibold uppercase tracking-wide">Événement actif</p>
+                        <p class="text-white font-bold truncate">${selEvt.titre}</p>
+                    </div>
+                    <button onclick="changeVerifEvent()" class="shrink-0 text-xs bg-blue-800 hover:bg-blue-700 text-blue-200 px-3 py-1.5 rounded-lg transition font-medium">
+                        Changer
+                    </button>
+                </div>
+
                 <h1 class="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">Scanner de Billets</h1>
                 
                 <div class="bg-slate-800 rounded-xl p-4 sm:p-6 mb-6">
@@ -93,6 +182,7 @@ function PageDashboardVerif() {
     `;
 }
 
+
 // LOGIQUE VERIFICATEUR
 function ensurePendingScans() {
     const existingPending = new Set(
@@ -133,6 +223,20 @@ async function lookupTicket(codeOverride = null) {
 
     try {
         const ticket = await apiLookupTicket(code);
+
+        // Vérifier que le billet appartient à l'événement sélectionné
+        if (_selectedVerifEvent && ticket.event_id !== _selectedVerifEvent.id) {
+            detailsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="text-4xl mb-3">⚠️</div>
+                    <h3 class="text-xl font-bold text-yellow-400 mb-2">Mauvais événement</h3>
+                    <p class="text-slate-400 text-sm">Ce billet n'appartient pas à l'événement sélectionné.</p>
+                    <p class="text-slate-500 text-xs mt-1">Événement actif : <span class="text-white">${_selectedVerifEvent.titre}</span></p>
+                </div>
+            `;
+            return;
+        }
+
         let event = getEventById(ticket.event_id);
         if (!event) {
             try {

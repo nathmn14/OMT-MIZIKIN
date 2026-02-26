@@ -268,12 +268,15 @@ function PageManageEvent(eventId) {
     const totalCheckIn = eventTickets.filter(t => t.status === 'used').length;
     const checkInRate = totalSold > 0 ? Math.round((totalCheckIn / totalSold) * 100) : 0;
 
+    // Charger les vérificateurs après le rendu du DOM
+    setTimeout(() => loadManageEventVerifiers(eventId), 100);
+
     return `
         ${Navbar()}
         <div class="max-w-7xl mx-auto px-4 py-8">
             <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <button onclick="Router.navigate('dashboard-orga')" class="text-slate-500 hover:text-slate-800 flex items-center gap-2 mb-2 font-medium">
+                    <button onclick="Router.navigate('${OMT_STATE.currentUser?.role === 'admin' ? 'dashboard-admin' : 'dashboard-orga'}')" class="text-slate-500 hover:text-slate-800 flex items-center gap-2 mb-2 font-medium">
                         <- Retour au Tableau de bord
                     </button>
                     <h1 class="text-3xl font-bold text-slate-900">${event.titre}</h1>
@@ -302,6 +305,28 @@ function PageManageEvent(eventId) {
                     <p class="text-3xl font-bold text-blue-600 mt-2">${checkInRate}%</p>
                 </div>
             </div>
+
+
+
+            <!-- SECTION ÉQUIPE DE VALIDATION -->
+            <div class="bg-white rounded-xl shadow-lg border border-slate-100 mt-8">
+                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Équipe de Validation</h2>
+                        <p class="text-sm text-slate-500 mt-1">Vérificateurs autorisés à scanner les billets de cet événement.</p>
+                    </div>
+                    <button onclick="showAddVerifierModal(${eventId})" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-purple-700 transition shadow-sm flex items-center gap-2 shrink-0">
+                        + Ajouter
+                    </button>
+                </div>
+                <div id="verifiers-list" class="p-6">
+                    <p class="text-slate-400 italic text-sm">Chargement...</p>
+                </div>
+            </div>
+            <br>
+            <br>
+
+            <!-- SECTION liste des participants -->
 
             <div class="bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden">
                 <div class="p-6 border-b border-slate-100">
@@ -341,6 +366,9 @@ function PageManageEvent(eventId) {
                     </table>
                 </div>
             </div>
+
+            
+
         </div>
     `;
 }
@@ -535,5 +563,112 @@ async function editEvent(eventId) {
         Router.navigate('create-event', { event });
     } catch (err) {
         showToast("Erreur lors de la récupération de l'événement", "error");
+    }
+}
+
+// ============================================
+// GESTION DES VÉRIFICATEURS (section Manage Event)
+// ============================================
+
+let _currentEventVerifiers = [];
+
+async function loadManageEventVerifiers(eventId) {
+    const container = document.getElementById('verifiers-list');
+    if (!container) return;
+    try {
+        _currentEventVerifiers = await apiListEventVerifiers(eventId);
+        renderManageVerifiersList(eventId);
+    } catch (e) {
+        if (container) container.innerHTML = '<p class="text-red-400 text-sm">Erreur de chargement.</p>';
+    }
+}
+
+function renderManageVerifiersList(eventId) {
+    const container = document.getElementById('verifiers-list');
+    if (!container) return;
+    if (_currentEventVerifiers.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 italic text-sm">Aucun vérificateur assigné à cet événement.</p>';
+        return;
+    }
+    container.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            ${_currentEventVerifiers.map(v => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="h-9 w-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm shrink-0">
+                            ${(v.nom || v.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="font-semibold text-slate-800 text-sm truncate">${v.nom || '—'}</p>
+                            <p class="text-xs text-slate-500 truncate">${v.email}</p>
+                        </div>
+                    </div>
+                    <button onclick="removeVerifierFromEvent(${eventId}, ${v.id})" title="Retirer" class="ml-2 text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition shrink-0 text-lg font-bold leading-none">&times;</button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+async function showAddVerifierModal(eventId) {
+    let allVerifiers = [];
+    try {
+        allVerifiers = await apiListVerifiers();
+    } catch (e) {
+        showToast("Impossible de charger les vérificateurs", "error");
+        return;
+    }
+    const assignedIds = new Set(_currentEventVerifiers.map(v => v.id));
+    const candidates = allVerifiers.filter(v => !assignedIds.has(v.id));
+
+    const options = candidates.length > 0
+        ? candidates.map(v => `<option value="${v.id}">${v.nom} (${v.email})</option>`).join('')
+        : '<option disabled value="">Aucun vérificateur disponible</option>';
+
+    const existing = document.getElementById('add-verifier-modal');
+    if (existing) existing.remove();
+
+    document.body.insertAdjacentHTML('beforeend', `
+        <div id="add-verifier-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onclick="if(event.target.id==='add-verifier-modal') this.remove()">
+            <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-900">Ajouter un vérificateur</h3>
+                    <button onclick="document.getElementById('add-verifier-modal').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold leading-none">&times;</button>
+                </div>
+                <p class="text-sm text-slate-500 mb-4">Ce vérificateur pourra scanner les billets de cet événement.</p>
+                <select id="verifier-select" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2.5 mb-5 focus:border-purple-500 outline-none text-sm">
+                    ${options}
+                </select>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('add-verifier-modal').remove()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-lg font-bold text-sm transition">Annuler</button>
+                    ${candidates.length > 0 ? `<button onclick="confirmAddVerifier(${eventId})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition shadow">Ajouter</button>` : ''}
+                </div>
+            </div>
+        </div>
+    `);
+}
+
+async function confirmAddVerifier(eventId) {
+    const select = document.getElementById('verifier-select');
+    if (!select || !select.value) return;
+    const userId = parseInt(select.value);
+    try {
+        await apiAddVerifier(eventId, userId);
+        showToast("Vérificateur ajouté avec succès", "success");
+        document.getElementById('add-verifier-modal').remove();
+        await loadManageEventVerifiers(eventId);
+    } catch (e) {
+        showToast(e.message || "Erreur lors de l'ajout", "error");
+    }
+}
+
+async function removeVerifierFromEvent(eventId, userId) {
+    if (!confirm("Retirer ce vérificateur de l'événement ?")) return;
+    try {
+        await apiRemoveVerifier(eventId, userId);
+        showToast("Vérificateur retiré", "success");
+        await loadManageEventVerifiers(eventId);
+    } catch (e) {
+        showToast(e.message || "Erreur", "error");
     }
 }

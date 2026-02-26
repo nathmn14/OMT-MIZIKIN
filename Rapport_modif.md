@@ -184,3 +184,66 @@ Le système est entièrement opérationnel. L'administrateur a désormais un con
 
 ### ✅ Sécurité
 Le blocage du changement de rôle pour les organisateurs avec des événements actifs protège l'intégrité des ventes et de la validation des billets en cours.
+
+---
+
+## 🛠️ Mise à jour du 26 Février 2026
+**Objet :** Affectation des vérificateurs aux événements.
+
+### 🔹 Correction critique (DB)
+- **Migration** : La table `event_verifiers` existait en base avec la mauvaise colonne `user_id`. Le script `migrate_event_verifiers.py` a été réécrit pour supprimer et recréer la table avec la colonne correcte `verifier_id`, éliminant une erreur 500 sur tous les endpoints `/api/events`.
+
+### 🔹 Modifications Backend
+
+- **Modèle `Event` (`backend/app/models/event.py`)** : Relation Many-to-Many `verifiers` entre `Event` et `User` via la table d'association `event_verifiers`. Permet de lier n vérificateurs à n événements.
+- **API Événements (`backend/app/api/routes/events.py`)** : Ajout de 4 nouvelles routes :
+  - `GET /events/assigned/me` — Vérificateur : liste ses événements affectés *(placée avant `/{event_id}` pour éviter le conflit de route)*
+  - `GET /events/{id}/verifiers` — Admin/Organisateur : liste les vérificateurs d'un événement
+  - `POST /events/{id}/verifiers/{user_id}` — Admin/Organisateur : affecter un vérificateur
+  - `DELETE /events/{id}/verifiers/{user_id}` — Admin/Organisateur : retirer un vérificateur
+- **Nouveau Router (`backend/app/api/routes/users.py`)** : Route `GET /users/verifiers` (accessible Admin + Organisateur) pour lister tous les utilisateurs ayant le rôle `verificateur` et approuvés.
+- **Router principal (`backend/app/api/router.py`)** : Inclusion du nouveau router `users`.
+
+### 🔹 Modifications Frontend
+
+- **API Client (`js/db.js`)** : Ajout de 5 nouvelles fonctions :
+  - `apiListVerifiers()`, `apiListEventVerifiers(eventId)`, `apiAddVerifier(eventId, userId)`, `apiRemoveVerifier(eventId, userId)`, `apiListAssignedEvents()`
+
+- **Interface Organisateur (`js/pages/organizer.js`)** :
+  - Nouvelle section **"Équipe de Validation"** dans `PageManageEvent()`.
+  - Chargée dynamiquement après le rendu HTML initial (`setTimeout`).
+  - Affiche les vérificateurs assignés avec bouton de retrait (×).
+  - Bouton **"+ Ajouter"** ouvre une modale avec liste déroulante des vérificateurs disponibles.
+  - **Adaptation Admin** : Le bouton de retour redirige désormais dynamiquement vers le bon dashboard (Admin ou Organisateur) selon le rôle de l'utilisateur.
+
+- **Interface Administrateur (`js/pages/admin.js`)** :
+  - Ajout d'un bouton **"Gérer"** dans la liste des événements pour permettre à l'administrateur d'accéder à la gestion de l'équipe de validation pour n'importe quel événement.
+
+### ✅ Résultat
+- Chaque vérificateur ne peut accéder qu'aux événements sur lesquels il a été affecté.
+- L'organisateur **et l'administrateur** peuvent gérer l'équipe de validation.
+- Les fonctionnalités existantes (scan de billets, gestion des événements, statistiques) restent intactes.
+
+---
+
+## ⚠️ Dépannage connu
+
+### Erreur : `ModuleNotFoundError: No module named 'email_validator'` au démarrage du serveur
+
+**Cause :** `uvicorn` est lancé avec le Python système (`C:\AppData\Local\Programs\Python\Python312\`) au lieu du Python de l'environnement virtuel du projet. Le module `email-validator` est installé dans le `env/` local, pas globalement.
+
+**Solution :** Toujours activer l'environnement virtuel avant de démarrer le serveur :
+
+```powershell
+# Option 1 — activer l'env puis lancer normalement
+.\env\Scripts\Activate.ps1
+uvicorn app.main:app --reload --port 8000
+
+# Option 2 — sans activation de l'env (utilise directement l'exécutable du venv)
+env\Scripts\uvicorn.exe app.main:app --reload --port 8000
+
+# Option 3 — via python -m uvicorn
+env\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+> 💡 Le symbole `(env)` qui apparaît en début de ligne dans le terminal confirme que l'environnement virtuel est bien activé.
