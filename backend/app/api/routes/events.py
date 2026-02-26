@@ -8,8 +8,26 @@ from app.models.event import Event
 from app.models.ticket_category import TicketCategory
 from app.models.user import User
 from app.schemas.event import EventCreate, EventOut, EventUpdate
+from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/events", tags=["events"])
+
+# --- Événements affectés au vérificateur connecté ---
+# IMPORTANT : cette route doit être AVANT /{event_id} pour éviter le conflit
+@router.get("/assigned/me", response_model=list[EventOut])
+async def list_assigned_events(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_roles(["verificateur"]))
+):
+    """Liste les événements auxquels le vérificateur connecté est affecté."""
+    result = await session.execute(
+        select(Event)
+        .join(Event.verifiers)
+        .where(User.id == current_user.id)
+        .options(selectinload(Event.categories))
+        .order_by(Event.date)
+    )
+    return result.scalars().unique().all()
 
 @router.get("", response_model=list[EventOut])
 async def list_events(
@@ -133,3 +151,64 @@ async def delete_event(
 
     await session.delete(event)
     await session.commit()
+
+# --- Gestion des vérificateurs d'un événement ---
+
+@router.get("/{event_id}/verifiers", response_model=list[UserOut])
+async def list_event_verifiers(
+    event_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_roles(["admin", "organisateur"]))
+):
+    """Liste les vérificateurs affectés à un événement."""
+    event = await session.get(Event, event_id, options=[selectinload(Event.verifiers)])
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if current_user.role != "admin" and event.organizer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return event.verifiers
+
+@router.post("/{event_id}/verifiers/{user_id}", response_model=bool)
+async def add_verifier(
+    event_id: int,
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_roles(["admin", "organisateur"]))
+):
+    """Affecte un vérificateur à un événement."""
+    event = await session.get(Event, event_id, options=[selectinload(Event.verifiers)])
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if current_user.role != "admin" and event.organizer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    user = await session.get(User, user_id)
+    if not user or user.role != "verificateur":
+        raise HTTPException(status_code=400, detail="L'utilisateur doit avoir le rôle vérificateur")
+
+    if user not in event.verifiers:
+        event.verifiers.append(user)
+        await session.commit()
+
+    return True
+
+@router.delete("/{event_id}/verifiers/{user_id}", response_model=bool)
+async def remove_verifier(
+    event_id: int,
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_roles(["admin", "organisateur"]))
+):
+    """Retire un vérificateur d'un événement."""
+    event = await session.get(Event, event_id, options=[selectinload(Event.verifiers)])
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if current_user.role != "admin" and event.organizer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    user = await session.get(User, user_id)
+    if user and user in event.verifiers:
+        event.verifiers.remove(user)
+        await session.commit()
+
+    return True
