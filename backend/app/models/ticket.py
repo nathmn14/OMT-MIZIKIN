@@ -10,7 +10,9 @@ class Ticket(Base):
     event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
     category_id: Mapped[int | None] = mapped_column(ForeignKey("ticket_categories.id"), nullable=True)
     type: Mapped[str] = mapped_column(String(50))
-    price: Mapped[int] = mapped_column(Integer)
+    price: Mapped[int] = mapped_column(Integer) # Original Price
+    payment_currency: Mapped[str] = mapped_column(String(10), default="$")
+    price_paid: Mapped[int] = mapped_column(Integer) # Converted Price
     participant_name: Mapped[str] = mapped_column(String(255))
     participant_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="valid")

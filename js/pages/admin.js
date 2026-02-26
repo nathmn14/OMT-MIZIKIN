@@ -8,7 +8,12 @@ let allUsers = [];
 function PageDashboardAdmin() {
     const totalEvents = OMT_STATE.events.length;
     const totalTickets = OMT_STATE.tickets.length;
-    const totalRevenu = OMT_STATE.tickets.reduce((sum, t) => sum + t.prix, 0);
+    // On convertit tout en $ pour le total global afin d'avoir une mesure cohérente
+    const totalRevenuUSD = OMT_STATE.tickets.reduce((sum, t) => {
+        const p = t.price_paid || t.prix || 0;
+        const curr = t.payment_currency || '$';
+        return sum + (curr === 'FC' ? p / 2200 : p);
+    }, 0);
 
     return `
         ${Navbar()}
@@ -30,7 +35,7 @@ function PageDashboardAdmin() {
                 </div>
                 <div class="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl p-4 sm:p-6 shadow-lg">
                     <p class="text-xs sm:text-sm opacity-90 mb-2">Revenu Total</p>
-                    <p class="stat-value font-bold">${totalRevenu}€</p>
+                    <p class="stat-value font-bold">${formatPrice(totalRevenuUSD, '$')}</p>
                 </div>
                 <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-4 sm:p-6 shadow-lg">
                     <p class="text-xs sm:text-sm opacity-90 mb-2">Utilisateurs</p>
@@ -167,7 +172,11 @@ function renderAdminEvents() {
                 <td class="px-6 py-4">
                     <div class="flex flex-col">
                         <span class="text-xs font-bold text-slate-700">${soldCount} billets vendus</span>
-                        <span class="text-xs text-green-600 font-medium">${totalRevenue}€ générés</span>
+                        <span class="text-xs text-green-600 font-medium">${formatPrice(eventTickets.reduce((sum, t) => {
+            const p = t.price_paid || t.prix || 0;
+            const curr = t.payment_currency || '$';
+            return sum + (curr === 'FC' ? p / 2200 : p);
+        }, 0), '$')} générés</span>
                     </div>
                 </td>
                 <td class="px-6 py-4 text-right">

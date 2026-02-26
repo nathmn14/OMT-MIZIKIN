@@ -26,6 +26,7 @@ class Event(Base):
     tickets_remaining: Mapped[int] = mapped_column(Integer, default=0)
     price_standard: Mapped[int] = mapped_column(Integer, default=0)
     price_vip: Mapped[int] = mapped_column(Integer, default=0)
+    currency: Mapped[str] = mapped_column(String(10), default="$")
     organizer_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

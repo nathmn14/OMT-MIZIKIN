@@ -98,7 +98,7 @@ function EventCard(event) {
                     <span> ${event.lieu.split(',')[1] || event.lieu}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-blue-600 font-bold text-base sm:text-lg">A partir de ${event.prix_standard}€</span>
+                    <span class="text-blue-600 font-bold text-base sm:text-lg">A partir de ${formatPrice(event.prix_standard, event.currency || '$')}</span>
                     <span class="text-xs sm:text-sm text-slate-500">${event.billets_restants} places</span>
                 </div>
             </div>

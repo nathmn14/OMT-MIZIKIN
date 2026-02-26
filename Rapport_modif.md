@@ -247,3 +247,31 @@ env\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
 > 💡 Le symbole `(env)` qui apparaît en début de ligne dans le terminal confirme que l'environnement virtuel est bien activé.
+---
+
+## 🛠️ Mise à jour du 26 Février 2026 (15:30)
+**Objet :** Gestion multi-devises par catégorie et conversion au checkout.
+
+### 🔹 Modifications Backend
+- **Modèles (`backend/app/models/`)** :
+  - `Event` & `TicketCategory` : Ajout d'un champ `currency` (par défaut `$`).
+  - `Ticket` : Ajout de `payment_currency` et `price_paid` pour tracer la devise choisie et le montant converti lors de l'achat.
+- **Schémas (`backend/app/schemas/`)** : Mise à jour des schémas d'entrée/sortie pour inclure les devises et le prix payé.
+- **Service Billing (`backend/app/services/ticketing.py`)** : Logique de conversion intégrée (1$ = 2200 FC) pour stocker le prix final payé.
+- **Migration DB** : Création et exécution du script `migrate_v2_currency.py` pour mettre à jour la structure SQLite.
+
+### 🔹 Améliorations Frontend
+- **Utilitaires (`js/db.js`)** :
+  - Refonte de `formatPrice(amount, from, to)` : Gère désormais les conversions dynamiques basées sur le taux fixe.
+  - Mise à jour de `normalizeEvent` et `normalizeTicket` : Garantit que les données brutes de l'API sont correctement mappées aux propriétés frontend (ex: `price_standard` -> `prix_standard`).
+- **Interface Organisateur (`js/pages/organizer.js`)** :
+  - Possibilité de choisir la devise ($ ou FC) pour **chaque catégorie de billet** individuellement lors de la création d'événement.
+  - Consolidation des revenus en $ dans le dashboard pour un affichage cohérent.
+- **Interface Utilisateur (`js/pages/public.js`)** :
+  - **Détails Événement** : Affichage des prix dans la devise choisie par l'organisateur.
+  - **Checkout Dynamique** : Le client peut désormais choisir sa devise de paiement ($ ou FC). Les prix unitaires et totaux sont convertis en temps réel.
+- **Interface Admin (`js/pages/admin.js`)** :
+  - Harmonisation du calcul des revenus totaux (base $) pour agréger les ventes multi-devises.
+
+- **Correction d'Affichage** : Le backend synchronise désormais automatiquement la devise de l'événement avec celle de sa première catégorie de billet (généralement la catégorie standard). Cela garantit que les cartes d'événements sur la page d'accueil affichent le bon symbole ($ ou FC) dès la création.
+- **Support complet** : Les créations et modifications d'événements enregistrent désormais correctement le champ `currency` pour chaque catégorie de billet en base de données.

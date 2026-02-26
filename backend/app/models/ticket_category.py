@@ -11,6 +11,7 @@ class TicketCategory(Base):
     event_id: Mapped[int] = mapped_column(ForeignKey("events.id"))
     name: Mapped[str] = mapped_column(String(255))
     price: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(10), default="$")
     stock: Mapped[int] = mapped_column(Integer)
 
     event: Mapped["Event"] = relationship("Event", back_populates="categories")

@@ -65,6 +65,7 @@ async def create_event(
         image_url=req.image_url,
         price_standard=req.price_standard,
         price_vip=req.price_vip,
+        currency=req.currency,
         tickets_remaining=tickets_remaining,
         organizer_id=current_user.id
     )
@@ -72,11 +73,16 @@ async def create_event(
     await session.flush()
 
     if req.categories:
+        # On synchronise le prix_standard et la devise avec la première catégorie si elle existe
+        event.price_standard = req.categories[0].price
+        event.currency = req.categories[0].currency
+        
         for c in req.categories:
             session.add(TicketCategory(
                 event_id=event.id,
                 name=c.name,
                 price=c.price,
+                currency=c.currency,
                 stock=c.stock,
             ))
 
@@ -115,11 +121,17 @@ async def update_event(
         
         # Ajouter les nouvelles
         total_stock = 0
+        if len(req.categories) > 0:
+            # On synchronise le prix_standard et la devise avec la première catégorie
+            event.price_standard = req.categories[0].price
+            event.currency = req.categories[0].currency
+            
         for c in req.categories:
             session.add(TicketCategory(
                 event_id=event.id,
                 name=c.name,
                 price=c.price,
+                currency=c.currency,
                 stock=c.stock,
             ))
             total_stock += c.stock

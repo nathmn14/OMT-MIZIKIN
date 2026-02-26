@@ -71,7 +71,7 @@ function PageEventDetail(eventId) {
                                     <div class="border-2 border-slate-200 rounded-lg p-4 sm:p-6 hover:border-blue-600 transition flex flex-col justify-between h-full">
                                         <div>
                                             <h4 class="text-lg sm:text-xl font-bold mb-2">${cat.nom}</h4>
-                                            <p class="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">${cat.prix}€</p>
+                                            <p class="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">${formatPrice(cat.prix, cat.currency || event.currency || '$')}</p>
                                             <p class="text-sm text-slate-500 mb-4">${cat.stock} places disponibles</p>
                                         </div>
                                         <button onclick="selectTicket(${event.id}, '${cat.nom}', ${cat.prix}, ${cat.id})" 
@@ -83,7 +83,7 @@ function PageEventDetail(eventId) {
             : `
                                 <div class="border-2 border-slate-200 rounded-lg p-4 sm:p-6 hover:border-blue-600 transition">
                                     <h4 class="text-lg sm:text-xl font-bold mb-2">Billet Standard</h4>
-                                    <p class="text-2xl sm:text-3xl font-bold text-blue-600 mb-3 sm:mb-4">${event.prix_standard}€</p>
+                                    <p class="text-2xl sm:text-3xl font-bold text-blue-600 mb-3 sm:mb-4">${formatPrice(event.prix_standard, event.currency || '$')}</p>
                                     <button onclick="selectTicket(${event.id}, 'standard', ${event.prix_standard})" 
                                             class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base">
                                         Reserver
@@ -91,7 +91,7 @@ function PageEventDetail(eventId) {
                                 </div>
                                 <div class="border-2 border-purple-300 rounded-lg p-4 sm:p-6 hover:border-purple-600 transition bg-purple-50">
                                     <h4 class="text-lg sm:text-xl font-bold mb-2">Billet VIP</h4>
-                                    <p class="text-2xl sm:text-3xl font-bold text-purple-600 mb-3 sm:mb-4">${event.prix_vip}€</p>
+                                    <p class="text-2xl sm:text-3xl font-bold text-purple-600 mb-3 sm:mb-4">${formatPrice(event.prix_vip, event.currency || '$')}</p>
                                     <button onclick="selectTicket(${event.id}, 'vip', ${event.prix_vip})" 
                                             class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition font-medium text-sm sm:text-base">
                                         Reserver
@@ -126,7 +126,7 @@ function PageCheckout(data) {
                 <div class="border-b pb-3 sm:pb-4 mb-3 sm:mb-4">
                     <p class="font-semibold text-sm sm:text-base">${event.titre}</p>
                     <p class="text-slate-600 text-xs sm:text-sm">${formatDate(event.date)} - ${event.lieu}</p>
-                    <p class="text-base sm:text-lg font-bold text-blue-600 mt-2">Billet ${data.type.toUpperCase()} - ${data.prix}€</p>
+                    <p class="text-base sm:text-lg font-bold text-blue-600 mt-2">Billet ${data.type.toUpperCase()} - ${formatPrice(data.prix, category ? category.currency : (event.currency || '$'))}</p>
                 </div>
                 
                 <div class="mb-3 sm:mb-4">
@@ -147,9 +147,17 @@ function PageCheckout(data) {
                 </div>
                 
                 <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4">
+                    <div class="flex justify-between items-center mb-2 pb-2 border-b border-blue-200">
+                        <span class="text-blue-900 font-bold text-sm sm:text-base">Devise de paiement :</span>
+                        <select id="pay-currency" onchange="changePayCurrency(${data.eventId}, ${data.prix}, ${data.categoryId || 'null'})" 
+                                class="bg-white border-2 border-blue-300 rounded px-2 py-1 text-xs font-bold text-blue-600">
+                            <option value="$" ${category?.currency === '$' || (!category && event.currency === '$') ? 'selected' : ''}>Dollar ($)</option>
+                            <option value="FC" ${category?.currency === 'FC' || (!category && event.currency === 'FC') ? 'selected' : ''}>Franc Congolais (FC)</option>
+                        </select>
+                    </div>
                     <div class="flex justify-between items-center">
                         <span class="text-slate-700 font-medium text-sm sm:text-base">Prix unitaire:</span>
-                        <span class="text-slate-900 font-semibold text-sm sm:text-base">${data.prix}€</span>
+                        <span class="text-slate-900 font-semibold text-sm sm:text-base" id="display-unit-price">${formatPrice(data.prix, category ? category.currency : (event.currency || '$'))}</span>
                     </div>
                     <div class="flex justify-between items-center mt-2">
                         <span class="text-slate-700 font-medium text-sm sm:text-base">Quantite:</span>
@@ -157,7 +165,7 @@ function PageCheckout(data) {
                     </div>
                     <div class="flex justify-between items-center mt-3 pt-3 border-t-2 border-blue-300">
                         <span class="text-blue-900 font-bold text-base sm:text-lg">Total a payer:</span>
-                        <span class="text-blue-600 font-bold text-xl sm:text-2xl" id="total-price">${totalPrice}€</span>
+                        <span class="text-blue-600 font-bold text-xl sm:text-2xl" id="total-price">${formatPrice(totalPrice, category ? category.currency : (event.currency || '$'))}</span>
                     </div>
                 </div>
             </div>
@@ -191,7 +199,7 @@ function PageCheckout(data) {
                 </div>
                 
                 <button type="submit" id="btn-pay" class="w-full bg-blue-600 text-white py-3 sm:py-4 rounded-lg hover:bg-blue-700 transition font-bold text-base sm:text-lg">
-                    Confirmer et Payer <span id="submit-total">${totalPrice}€</span>
+                    Confirmer et Payer <span id="submit-total">${formatPrice(totalPrice, category ? category.currency : (event.currency || '$'))}</span>
                 </button>
             </form>
 
@@ -212,6 +220,7 @@ function updateQuantity(eventId, type, prix, change, categoryId = null) {
     const displayQuantity = document.getElementById('display-quantity');
     const totalPriceElement = document.getElementById('total-price');
     const submitTotal = document.getElementById('submit-total');
+    const payCurrency = document.getElementById('pay-currency')?.value || '$';
 
     let currentQuantity = parseInt(quantityInput.value) || 1;
     let newQuantity = currentQuantity + change;
@@ -219,6 +228,7 @@ function updateQuantity(eventId, type, prix, change, categoryId = null) {
     const event = getEventById(eventId);
     const category = categoryId ? event.categories.find(c => c.id === categoryId) : null;
     const maxStock = category ? category.stock : event.billets_restants;
+    const sourceCurrency = category ? category.currency : (event.currency || '$');
 
     if (newQuantity < 1) newQuantity = 1;
     if (newQuantity > maxStock) {
@@ -232,10 +242,28 @@ function updateQuantity(eventId, type, prix, change, categoryId = null) {
     displayQuantity.textContent = newQuantity;
 
     const totalPrice = prix * newQuantity;
-    totalPriceElement.textContent = totalPrice + '€';
-    submitTotal.textContent = totalPrice + '€';
+    totalPriceElement.textContent = formatPrice(totalPrice, sourceCurrency, payCurrency);
+    submitTotal.textContent = formatPrice(totalPrice, sourceCurrency, payCurrency);
 
     Router.currentData = { eventId, type, prix, quantity: newQuantity, categoryId };
+}
+
+function changePayCurrency(eventId, prix, categoryId = null) {
+    const quantity = parseInt(document.getElementById('ticket-quantity')?.value) || 1;
+    const payCurrency = document.getElementById('pay-currency').value;
+    const totalPriceElement = document.getElementById('total-price');
+    const submitTotal = document.getElementById('submit-total');
+    const unitPriceElement = document.getElementById('display-unit-price');
+
+    const event = getEventById(eventId);
+    const category = categoryId ? event.categories.find(c => c.id === categoryId) : null;
+    const sourceCurrency = category ? category.currency : (event.currency || '$');
+
+    const totalPrice = prix * quantity;
+
+    unitPriceElement.textContent = formatPrice(prix, sourceCurrency, payCurrency);
+    totalPriceElement.textContent = formatPrice(totalPrice, sourceCurrency, payCurrency);
+    submitTotal.textContent = formatPrice(totalPrice, sourceCurrency, payCurrency);
 }
 
 async function processCheckout(e, eventId, type, prix, categoryId) {
@@ -244,7 +272,18 @@ async function processCheckout(e, eventId, type, prix, categoryId) {
     const nom = document.getElementById('nom').value;
     const email = document.getElementById('email').value;
     const quantity = parseInt(document.getElementById('ticket-quantity').value) || 1;
+    const payCurrency = document.getElementById('pay-currency')?.value || '$';
     const btn = document.getElementById('btn-pay');
+
+    const event = getEventById(eventId);
+    const category = categoryId ? event.categories.find(c => c.id === categoryId) : null;
+    const sourceCurrency = category ? category.currency : (event.currency || '$');
+
+    // Calcul du prix payé (converti)
+    const rate = 2200;
+    let pricePaid = prix;
+    if (sourceCurrency === "$" && payCurrency === "FC") pricePaid = prix * rate;
+    else if (sourceCurrency === "FC" && payCurrency === "$") pricePaid = prix / rate;
 
     btn.disabled = true;
     btn.textContent = "Paiement...";
@@ -254,10 +293,12 @@ async function processCheckout(e, eventId, type, prix, categoryId) {
             event_id: eventId,
             category_id: categoryId,
             ticket_type: type,
-            price: prix,
+            price: prix, // Prix original
             quantity,
             participant_name: nom,
-            participant_email: email
+            participant_email: email,
+            payment_currency: payCurrency,
+            price_paid: Math.round(pricePaid)
         });
 
         showToast("Paiement reussi", "success");
@@ -273,7 +314,10 @@ async function processCheckout(e, eventId, type, prix, categoryId) {
 function PageTicketSuccess(data) {
     const tickets = OMT_STATE.lastPurchase || [];
     const event = data?.eventId ? getEventById(data.eventId) : (tickets[0] ? getEventById(tickets[0].event_id) : null);
-    const totalAmount = tickets.reduce((sum, t) => sum + t.prix, 0);
+
+    // Utiliser price_paid pour le total affiché
+    const totalAmount = tickets.reduce((sum, t) => sum + (t.price_paid || t.prix), 0);
+    const payCurrency = tickets[0]?.payment_currency || '$';
 
     return `
         ${Navbar(false)}
@@ -281,7 +325,7 @@ function PageTicketSuccess(data) {
             <div class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 lg:p-8">
                 <h1 class="text-2xl sm:text-3xl font-bold text-green-600 mb-3 sm:mb-4">Paiement confirme</h1>
                 <p class="text-sm sm:text-base text-slate-600 mb-2">Votre achat est valide. Vos billets sont ci-dessous.</p>
-                <p class="text-lg sm:text-xl font-bold text-blue-600 mb-6 sm:mb-8">${tickets.length} billet${tickets.length > 1 ? 's' : ''} - Total: ${totalAmount}€</p>
+                <p class="text-lg sm:text-xl font-bold text-blue-600 mb-6 sm:mb-8">${tickets.length} billet${tickets.length > 1 ? 's' : ''} - Total: ${formatPrice(totalAmount, payCurrency)}</p>
 
                 ${tickets.length > 1 ? `
                     <button onclick="downloadAllTickets()" class="mb-8 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition-all flex items-center justify-center gap-2 mx-auto">
@@ -299,7 +343,7 @@ function PageTicketSuccess(data) {
                             <p class="font-mono text-xs text-slate-600 mb-2">Code: ${t.qr_code_data}</p>
                             <p class="text-xs sm:text-sm text-slate-700"><strong>Participant:</strong> ${t.participant_name}</p>
                             <p class="text-xs sm:text-sm text-slate-700"><strong>Type:</strong> ${t.type.toUpperCase()}</p>
-                            <p class="text-xs sm:text-sm text-slate-700"><strong>Prix:</strong> ${t.prix}€</p>
+                            <p class="text-xs sm:text-sm text-slate-700"><strong>Prix paye:</strong> ${formatPrice(t.price_paid || t.prix, t.payment_currency || '$')}</p>
                             <div class="mt-4 flex gap-2 justify-center">
                                 <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-bold" onclick="downloadQr('${t.id}', '${t.qr_code_data}')">
                                     Telecharger QR
@@ -502,8 +546,8 @@ function downloadAllTickets() {
                             <div class="info-item">${t.type.toUpperCase()}</div>
                         </div>
                         <div>
-                            <div class="info-label">Prix</div>
-                            <div class="info-item">${t.prix}€</div>
+                            <div class="info-label">Prix Paye</div>
+                            <div class="info-item">${formatPrice(t.price_paid || t.prix, t.payment_currency || '$')}</div>
                         </div>
                         <div>
                             <div class="info-label">Statut</div>

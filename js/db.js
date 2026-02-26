@@ -65,6 +65,7 @@ function normalizeEvent(e) {
         time: e.time || "",
         lieu: e.location,
         image: e.image_url || "",
+        currency: e.currency || "$",
         billets_restants: e.tickets_remaining ?? 0,
         prix_standard: e.price_standard ?? 0,
         prix_vip: e.price_vip ?? 0,
@@ -72,6 +73,7 @@ function normalizeEvent(e) {
             id: c.id,
             nom: c.name,
             prix: c.price,
+            currency: c.currency || "$",
             stock: c.stock
         }))
     };
@@ -84,6 +86,8 @@ function normalizeTicket(t) {
         category_id: t.category_id || null,
         type: t.type,
         prix: t.price,
+        payment_currency: t.payment_currency || "$",
+        price_paid: t.price_paid || 0,
         participant_name: t.participant_name,
         participant_email: t.participant_email || null,
         status: t.status,
@@ -123,6 +127,26 @@ async function apiFetch(path, options = {}, retry = true) {
 
     if (res.status === 204) return null;
     return res.json();
+}
+
+function formatPrice(amount, fromCurrency = "$", toCurrency = null) {
+    const targetCurr = toCurrency || fromCurrency; // Default to same as source if not specified
+    const rate = 2200; // 1$ = 2200 FC
+
+    let converted = amount;
+
+    if (fromCurrency === "$" && targetCurr === "FC") {
+        converted = amount * rate;
+    } else if (fromCurrency === "FC" && targetCurr === "$") {
+        converted = amount / rate;
+    }
+
+    if (targetCurr === "FC") {
+        return Math.round(converted).toLocaleString('fr-FR') + " FC";
+    } else {
+        // Pour le dollar, on affiche 2 décimales sauf si c'est un compte rond
+        return (Number.isInteger(converted) ? converted : converted.toFixed(2)) + " $";
+    }
 }
 
 async function apiRefreshToken() {

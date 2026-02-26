@@ -48,6 +48,8 @@ async def purchase_tickets(session: AsyncSession, req):
             category_id=req.category_id,
             type=ticket_type,
             price=price,
+            payment_currency=getattr(req, 'payment_currency', '$'),
+            price_paid=getattr(req, 'price_paid', price) or price,
             participant_name=req.participant_name,
             participant_email=req.participant_email,
             status="valid",

@@ -8,7 +8,12 @@ let uploadedImageUrl = null;
 function PageDashboardOrga() {
     const myEvents = OMT_STATE.events;
     const totalVentes = OMT_STATE.tickets.length;
-    const totalRevenu = OMT_STATE.tickets.reduce((sum, t) => sum + t.prix, 0);
+    // On convertit tout en $ pour le total global afin d'avoir une mesure cohérente
+    const totalRevenuUSD = OMT_STATE.tickets.reduce((sum, t) => {
+        const p = t.price_paid || t.prix || 0;
+        const curr = t.payment_currency || '$';
+        return sum + (curr === 'FC' ? p / 2200 : p);
+    }, 0);
     const validTickets = OMT_STATE.tickets.filter(t => t.status === 'valid').length;
 
     return `
@@ -31,7 +36,7 @@ function PageDashboardOrga() {
                 </div>
                 <div class="stat-card-green text-white rounded-xl p-4 sm:p-6 shadow-xl">
                     <p class="text-sm opacity-90 mb-1">Revenu Total</p>
-                    <p class="stat-value font-bold">${totalRevenu}€</p>
+                    <p class="stat-value font-bold">${formatPrice(totalRevenuUSD, '$')}</p>
                 </div>
                 <div class="bg-gradient-to-br from-orange-400 to-red-500 text-white rounded-xl p-4 sm:p-6 shadow-xl">
                     <p class="text-sm opacity-90 mb-1">Billets a Valider</p>
@@ -374,12 +379,13 @@ function PageManageEvent(eventId) {
 }
 
 // LOGIQUE ORGANISATEUR
-function addCategory(name = '', price = 0, stock = 100) {
+function addCategory(name = '', price = 0, stock = 100, currency = '$') {
     ticketCategories.push({
         id: Date.now() + Math.floor(Math.random() * 1000),
         nom: name,
         prix: price,
-        stock: stock
+        stock: stock,
+        currency: currency
     });
 }
 
@@ -402,7 +408,7 @@ function removeCategory(id) {
 function updateCategory(id, field, value) {
     const cat = ticketCategories.find(c => c.id === id);
     if (cat) {
-        cat[field] = field === 'nom' ? value : Number(value);
+        cat[field] = (field === 'nom' || field === 'currency') ? value : Number(value);
         saveDraft();
     }
 }
@@ -418,8 +424,16 @@ function renderCategories() {
                 <input type="text" value="${cat.nom}" oninput="updateCategory(${cat.id}, 'nom', this.value)" 
                        class="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm font-medium">
             </div>
+            <div class="w-full sm:w-24">
+                <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Devise</label>
+                <select onchange="updateCategory(${cat.id}, 'currency', this.value)" 
+                        class="w-full bg-white border border-slate-300 rounded px-2 py-2 text-sm font-medium">
+                    <option value="$" ${cat.currency === '$' ? 'selected' : ''}>$</option>
+                    <option value="FC" ${cat.currency === 'FC' ? 'selected' : ''}>FC</option>
+                </select>
+            </div>
             <div class="w-full sm:w-32">
-                <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Prix (€)</label>
+                <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Prix</label>
                 <input type="number" value="${cat.prix}" min="0" oninput="updateCategory(${cat.id}, 'prix', this.value)" 
                        class="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm font-medium">
             </div>
@@ -499,6 +513,7 @@ async function publishEvent(e, eventId = null) {
     const categories = ticketCategories.map(c => ({
         name: c.nom,
         price: Number(c.prix),
+        currency: c.currency || '$',
         stock: Number(c.stock)
     }));
 
@@ -519,6 +534,7 @@ async function publishEvent(e, eventId = null) {
             image_url: uploadedImageUrl,
             price_standard: priceStandard,
             price_vip: priceVip,
+            currency: categories[0] ? categories[0].currency : '$',
             categories
         };
 

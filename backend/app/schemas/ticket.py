@@ -8,6 +8,8 @@ class TicketPurchaseRequest(BaseModel):
     quantity: int = 1
     participant_name: str
     participant_email: EmailStr | None = None
+    payment_currency: str = "$"
+    price_paid: int | None = None
 
 class TicketOut(BaseModel):
     id: int
@@ -19,6 +21,8 @@ class TicketOut(BaseModel):
     participant_email: EmailStr | None = None
     status: str
     qr_code_data: str
+    payment_currency: str
+    price_paid: int
 
     class Config:
         from_attributes = True
