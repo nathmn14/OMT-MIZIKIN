@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, EmailStr
+﻿from pydantic import BaseModel, EmailStr, validator
 
 class TicketPurchaseRequest(BaseModel):
     event_id: int
@@ -10,6 +10,11 @@ class TicketPurchaseRequest(BaseModel):
     participant_email: EmailStr | None = None
     payment_currency: str = "$"
     price_paid: int | None = None
+
+    @validator("participant_name")
+    def clean_html(cls, v):
+        import html
+        return html.escape(v) if v else v
 
 class TicketOut(BaseModel):
     id: int

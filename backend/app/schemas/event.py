@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+﻿from pydantic import BaseModel, Field, validator
 
 class TicketCategoryCreate(BaseModel):
     name: str
@@ -23,6 +23,24 @@ class EventCreate(BaseModel):
     price_vip: int = 0
     currency: str = "$"
     categories: list[TicketCategoryCreate] = Field(default_factory=list)
+
+    @validator("title", "description", "location")
+    def clean_html(cls, v):
+        import html
+        return html.escape(v) if v else v
+
+class EventShortOut(BaseModel):
+    id: int
+    title: str
+    date: str
+    location: str
+    image_url: str | None = None
+    price_standard: int = 0
+    currency: str = "$"
+    tickets_remaining: int = 0
+
+    class Config:
+        from_attributes = True
 
 class EventOut(EventCreate):
     id: int

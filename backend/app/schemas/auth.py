@@ -1,13 +1,17 @@
-﻿from pydantic import BaseModel, EmailStr
+﻿from pydantic import BaseModel, EmailStr, validator, Field
 
 class RegisterRequest(BaseModel):
     nom: str
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=6)
     phone: str | None = None
-    role: str = "organisateur"
     payment_method: str | None = None
     payment_detail: str | None = None
+
+    @validator("nom")
+    def clean_nom(cls, v):
+        import html
+        return html.escape(v)
 
 class LoginRequest(BaseModel):
     email: EmailStr

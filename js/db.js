@@ -19,6 +19,11 @@ const OMT_STATE = {
         events: false,
         tickets: false,
         users: false
+    },
+    cache: {
+        events: 0,
+        tickets: 0,
+        ttl: 5 * 60 * 1000 // 5 minutes
     }
 };
 
@@ -69,13 +74,13 @@ function normalizeEvent(e) {
         billets_restants: e.tickets_remaining ?? 0,
         prix_standard: e.price_standard ?? 0,
         prix_vip: e.price_vip ?? 0,
-        categories: (e.categories || []).map(c => ({
+        categories: e.categories ? (e.categories || []).map(c => ({
             id: c.id,
             nom: c.name,
             prix: c.price,
             currency: c.currency || "$",
             stock: c.stock
-        }))
+        })) : [] // Handled missing categories in ShortOut
     };
 }
 
@@ -120,7 +125,15 @@ async function apiFetch(path, options = {}, retry = true) {
         let detail = "Erreur API";
         try {
             const data = await res.json();
-            detail = data.detail || detail;
+            if (res.status === 422 && Array.isArray(data.detail)) {
+                // Formatting Pydantic errors: "field: error_msg"
+                detail = data.detail.map(err => {
+                    const field = err.loc[err.loc.length - 1];
+                    return `${field}: ${err.msg}`;
+                }).join(", ");
+            } else {
+                detail = data.detail || detail;
+            }
         } catch (e) { }
         throw new Error(detail);
     }
@@ -188,12 +201,20 @@ async function apiMe() {
     return data;
 }
 
-async function apiListEvents(organizerId = null) {
+async function apiListEvents(organizerId = null, forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && !organizerId && OMT_STATE.events.length > 0 && (now - OMT_STATE.cache.events < OMT_STATE.cache.ttl)) {
+        console.log("Using cached events");
+        return OMT_STATE.events;
+    }
+
     OMT_STATE.loading.events = true;
     const q = organizerId ? `?organizer_id=${organizerId}` : "";
     const data = await apiFetch(`/events${q}`, { method: "GET" });
     OMT_STATE.events = data.map(normalizeEvent);
     OMT_STATE.loading.events = false;
+
+    if (!organizerId) OMT_STATE.cache.events = now;
     return OMT_STATE.events;
 }
 
@@ -209,11 +230,14 @@ async function apiCreateEvent(payload) {
     });
     const event = normalizeEvent(data);
     OMT_STATE.events.unshift(event);
+    OMT_STATE.cache.events = 0; // Invalidate cache
     return event;
 }
 
 async function apiDeleteEvent(eventId) {
-    return apiFetch(`/events/${eventId}`, { method: "DELETE" });
+    const res = await apiFetch(`/events/${eventId}`, { method: "DELETE" });
+    OMT_STATE.cache.events = 0; // Invalidate cache
+    return res;
 }
 
 async function apiUpdateEvent(eventId, payload) {
@@ -224,6 +248,7 @@ async function apiUpdateEvent(eventId, payload) {
     const event = normalizeEvent(data);
     const idx = OMT_STATE.events.findIndex(e => e.id === event.id);
     if (idx !== -1) OMT_STATE.events[idx] = event;
+    OMT_STATE.cache.events = 0; // Invalidate cache
     return event;
 }
 
@@ -236,6 +261,7 @@ async function apiCheckout(payload) {
     OMT_STATE.lastPurchase = tickets;
     localStorage.setItem("omt_last_purchase", JSON.stringify(tickets));
     OMT_STATE.tickets = [...tickets, ...OMT_STATE.tickets];
+    OMT_STATE.cache.tickets = 0; // Invalidate cache
     return tickets;
 }
 
@@ -249,15 +275,24 @@ async function apiVerifyTicket(code) {
         method: "POST",
         body: JSON.stringify({ qr_code_data: code })
     });
+    OMT_STATE.cache.tickets = 0; // Invalidate cache
     return normalizeTicket(data);
 }
 
-async function apiListTickets(eventId = null) {
+async function apiListTickets(eventId = null, forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && !eventId && OMT_STATE.tickets.length > 0 && (now - OMT_STATE.cache.tickets < OMT_STATE.cache.ttl)) {
+        console.log("Using cached tickets");
+        return OMT_STATE.tickets;
+    }
+
     OMT_STATE.loading.tickets = true;
     const q = eventId ? `?event_id=${eventId}` : "";
     const data = await apiFetch(`/tickets${q}`, { method: "GET" });
     OMT_STATE.tickets = data.map(normalizeTicket);
     OMT_STATE.loading.tickets = false;
+
+    if (!eventId) OMT_STATE.cache.tickets = now;
     return OMT_STATE.tickets;
 }
 

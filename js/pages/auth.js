@@ -65,6 +65,8 @@ function PageRegister() {
                 </button>
                 <h1 class="text-2xl sm:text-3xl font-bold text-center mb-6">Inscription</h1>
                 
+                <div id="register-error" class="hidden mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm"></div>
+
                 <form onsubmit="handleRegister(event)" class="space-y-4">
                     <div>
                         <label class="block text-slate-700 font-medium mb-1 text-sm">Nom complet</label>
@@ -163,6 +165,10 @@ async function handleLogin(e) {
 async function handleRegister(e) {
     e.preventDefault();
 
+    const errorDiv = document.getElementById('register-error');
+    errorDiv.classList.add('hidden');
+    errorDiv.textContent = '';
+
     const payload = {
         nom: document.getElementById('reg-name').value,
         email: document.getElementById('reg-email').value,
@@ -182,7 +188,17 @@ async function handleRegister(e) {
         showToast("Inscription reussie. Votre compte est en attente de validation.", "success");
         Router.navigate('login');
     } catch (err) {
-        showToast(err.message || "Erreur lors de l'inscription", "error");
+        let msg = err.message;
+
+        // Custom mapping for common errors
+        if (msg.includes("Email already used")) msg = "Cet email est deja utilise par un autre compte.";
+        if (msg.includes("password: ensure this value has at least 6 characters") || msg.includes("password: String should have at least 6 characters")) msg = "Le mot de passe doit contenir au moins 6 caracteres.";
+        if (msg.includes("email: value is not a valid email address")) msg = "L'adresse email n'est pas valide.";
+        if (msg.includes("nom: field required")) msg = "Le nom complet est obligatoire.";
+
+        errorDiv.textContent = msg;
+        errorDiv.classList.remove('hidden');
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } finally {
         btn.disabled = false;
         btn.textContent = "S'inscrire";

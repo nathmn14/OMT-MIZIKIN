@@ -7,7 +7,7 @@ from app.db.session import get_session
 from app.models.event import Event
 from app.models.ticket_category import TicketCategory
 from app.models.user import User
-from app.schemas.event import EventCreate, EventOut, EventUpdate
+from app.schemas.event import EventCreate, EventOut, EventUpdate, EventShortOut
 from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -29,7 +29,7 @@ async def list_assigned_events(
     )
     return result.scalars().unique().all()
 
-@router.get("", response_model=list[EventOut])
+@router.get("", response_model=list[EventShortOut])
 async def list_events(
     organizer_id: int | None = None,
     session: AsyncSession = Depends(get_session)

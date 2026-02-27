@@ -103,7 +103,7 @@ async def reset_user_password(session: AsyncSession, user_id: int, new_password:
         raise ValueError("User not found")
     
     user.password_hash = hash_password(new_password)
-    user.plain_password = new_password  # Mise à jour du mot de passe en clair pour l'admin
+    user.plain_password = new_password
     await session.commit()
     await session.refresh(user)
     return user

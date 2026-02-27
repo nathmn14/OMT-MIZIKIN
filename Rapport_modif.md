@@ -274,4 +274,56 @@ env\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
   - Harmonisation du calcul des revenus totaux (base $) pour agréger les ventes multi-devises.
 
 - **Correction d'Affichage** : Le backend synchronise désormais automatiquement la devise de l'événement avec celle de sa première catégorie de billet (généralement la catégorie standard). Cela garantit que les cartes d'événements sur la page d'accueil affichent le bon symbole ($ ou FC) dès la création.
-- **Support complet** : Les créations et modifications d'événements enregistrent désormais correctement le champ `currency` pour chaque catégorie de billet en base de données.
+
+---
+
+## 🛡️ Mise à jour du 26 Février 2026 (17:00)
+**Objet :** Audit de Sécurité et Renforcement (OWASP Top 10).
+
+### 🔹 Sécurisation Backend
+- **Protection Mass Assignment** : La route `/register` a été sécurisée pour empêcher l'auto-attribution de rôles (admin/organisateur). Le rôle est désormais forcé à "participant" par défaut.
+- **Gestion des Secrets** : Déplacement de la `SECRET_KEY` vers un fichier `.env` sécurisé. L'application exige désormais une clé forte en environnement de production.
+- **Prévention XSS** : Intégration de validateurs Pydantic avec `html.escape` sur les champs sensibles (noms, titres, descriptions) pour neutraliser les injections de scripts.
+- **Concurrence & Intégrité** : Ajout de `CheckConstraint` en base de données pour garantir que les stocks de billets ne deviennent jamais négatifs, même en cas de forte affluence.
+
+### 🔹 Gestion des Mots de Passe
+- **Hachage Sécurisé** : Migration complète vers un système basé exclusivement sur `bcrypt`.
+- **Note de Support** : Suite à la demande utilisateur, le champ `plain_password` a été rétabli pour permettre à l'administrateur de visualiser les mots de passe en clair pour faciliter le support technique.
+
+### ✅ Résultat
+
+---
+
+## 🚀 Mise à jour du 26 Février 2026 (17:30)
+**Objet :** Optimisation des performances (Backend/Frontend/DB).
+
+### 🔹 Optimisations Base de Données
+- **Indexation** : Ajout d'indices sur toutes les clés étrangères (`tickets.event_id`, `tickets.category_id`, `ticket_categories.event_id`, `scans.ticket_id`) pour des recherches instantanées sur de gros volumes.
+
+### 🔹 Optimisations Backend
+- **Schémas de Sortie** : Création du schéma `EventShortOut` pour les listes. Les données non essentielles (descriptions longues, détails des catégories) ne sont plus envoyées sur la page d'accueil, divisant par deux le poids des réponses JSON.
+
+### 🔹 Optimisations Frontend
+- **Cache Intelligent** : Implémentation d'un cache de 5 minutes dans `OMT_STATE`. La navigation entre les pages est désormais quasi instantanée car les données déjà chargées ne font plus l'objet d'appels API redondants.
+- **Lazy Loading** : Les images des événements se chargent uniquement lorsqu'elles entrent dans le champ de vision de l'utilisateur, accélérant le rendu initial de la page.
+
+### ✅ Résultat
+
+---
+
+## 📝 Mise à jour du 26 Février 2026 (18:40)
+**Objet :** Amélioration de l'expérience utilisateur - Gestion des erreurs d'inscription.
+
+### 🔹 Validation Backend renforcée
+- Ajout d'une contrainte de longueur minimale (6 caractères) pour les mots de passe dans `RegisterRequest`.
+
+### 🔹 Communication API détaillée
+- Mise à jour de `apiFetch` pour extraire et formater les erreurs de validation complexes renvoyées par FastAPI (Pydantic). Désormais, les champs erronés sont identifiés précisément.
+
+### 🔹 Interface Utilisateur (UX)
+- **Bannière d'erreur** : Ajout d'un conteneur d'alerte rouge dynamique en haut du formulaire d'inscription.
+- **Traduction des messages** : Les erreurs techniques (ex: "Email already used", "at least 6 characters") sont interceptées et affichées en français convivial pour l'utilisateur final.
+- **Auto-scroll** : La page défile automatiquement vers le haut pour montrer l'erreur si l'inscription échoue.
+
+### ✅ Résultat
+Un processus d'inscription plus intuitif qui guide l'utilisateur en cas d'erreur de saisie.

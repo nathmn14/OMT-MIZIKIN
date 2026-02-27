@@ -89,7 +89,7 @@ function EventCard(event) {
     return `
         <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer" 
              onclick="Router.navigate('event-detail', {eventId: ${event.id}})">
-            <img src="${event.image}" alt="${event.titre}" class="w-full event-card-image object-cover">
+            <img src="${event.image}" alt="${event.titre}" class="w-full event-card-image object-cover" loading="lazy">
             <div class="p-4 sm:p-6">
                 <h3 class="text-lg sm:text-xl font-bold text-slate-900 mb-2">${event.titre}</h3>
                 <p class="text-sm sm:text-base text-slate-600 mb-4 line-clamp-2">${event.description}</p>

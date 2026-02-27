@@ -1,7 +1,5 @@
-﻿from __future__ import annotations
-
-from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, ForeignKey, Table, Column
+﻿from datetime import datetime
+from sqlalchemy import String, DateTime, Integer, ForeignKey, Table, Column, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
@@ -29,6 +27,10 @@ class Event(Base):
     currency: Mapped[str] = mapped_column(String(10), default="$")
     organizer_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        CheckConstraint('tickets_remaining >= 0', name='check_tickets_remaining_positive'),
+    )
 
     categories: Mapped[list["TicketCategory"]] = relationship(
         "TicketCategory",

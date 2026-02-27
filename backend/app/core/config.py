@@ -4,7 +4,7 @@ from pydantic import Field
 class Settings(BaseSettings):
     app_name: str = Field(default="OMT Events API", alias="APP_NAME")
     env: str = Field(default="dev", alias="ENV")
-    secret_key: str = Field(default="change_me", alias="SECRET_KEY")
+    secret_key: str = Field(..., alias="SECRET_KEY") # Field(...) forces it to be provided (env or config)
     access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=7, alias="REFRESH_TOKEN_EXPIRE_DAYS")
     database_url: str = Field(default="sqlite+aiosqlite:///./omt.db", alias="DATABASE_URL")
