@@ -31,6 +31,12 @@ def test_separation():
     if orga1:
         print(f"Approving orga1 (ID: {orga1['id']})...")
         requests.post(f"{BASE_URL}/admin/users/{orga1['id']}/approve", headers={"Authorization": f"Bearer {admin_token}"})
+        # promote to organisateur for event creation
+        requests.patch(
+            f"{BASE_URL}/admin/users/{orga1['id']}/role",
+            json={"role": "organisateur"},
+            headers={"Authorization": f"Bearer {admin_token}"}
+        )
     
     # 3. Login as orga1
     print("Logging in as orga1...")
@@ -73,6 +79,11 @@ def test_separation():
     if orga2:
         print(f"Approving orga2 (ID: {orga2['id']})...")
         requests.post(f"{BASE_URL}/admin/users/{orga2['id']}/approve", headers={"Authorization": f"Bearer {admin_token}"})
+        requests.patch(
+            f"{BASE_URL}/admin/users/{orga2['id']}/role",
+            json={"role": "organisateur"},
+            headers={"Authorization": f"Bearer {admin_token}"}
+        )
     
     # 6. Login as orga2
     print("Logging in as orga2...")

@@ -1,86 +1,137 @@
 # OMT Events — Plateforme de gestion de billetterie
 
-Un projet web pour la gestion d'événements et la vente/validation de billets.
+Ce dépôt contient le backend (FastAPI) et le frontend statique d'une plateforme de billetterie. Le backend fournit des API pour gérer des utilisateurs, événements et billets ; le frontend est une application JavaScript/HTML simple servie depuis le même serveur.
 
-**Objectif :**
+---
 
-- **Description :** Backend FastAPI pour les API et la logique applicative, accompagné de fichiers frontend statiques pour les interfaces publique, organisateur et administrateur.
+## Prérequis
 
-**Fonctionnalités principales :**
+- Python 3.13+ (utilisez le `env/bin/python` fourni ou créez un venv local)
+- Linux / macOS / Windows – la procédure ci‑dessous fonctionne dans un shell bash ou PowerShell.
 
-- **Authentification :** Connexion / Inscription (token JWT).
-- **Gestion d'événements :** Création et administration des événements.
-- **Billetterie :** Catégories de billets, émission, scan/vérification.
+---
 
-**Technologies :**
+## Installation
 
-- **Backend :** Python, FastAPI, SQLAlchemy.
-- **Frontend :** HTML/CSS/JS (fichiers statiques à la racine du projet).
+1. **Cloner le projet**
 
-**Installation (locale, Windows)**
+   ```bash
+   git clone <repo-url>
+   cd "OMT MIZIKIN"        # note : le nom du dossier contient un espace
+   ```
 
-1. Cloner le dépôt : `git clone <repo-url>`
-2. Créer un environnement virtuel dans le répertoire du projet (optionnel, mais recommandé) :
+2. **Activer un environnement virtuel** (optionnel mais recommandé) :
 
-```powershell
-python -m venv env
-Activer l'environnement virtuel (PowerShell) :
+   ```bash
+   python3 -m venv backend/env       # ou `python -m venv env` depuis backend/
+   source backend/env/bin/activate   # bash/zsh
+   # ou sous PowerShell :
+   # .\backend\env\Scripts\Activate.ps1
+   ```
 
-PowerShell
-.\env\Scripts\Activate.ps1
-Installer les dépendances du backend :
+3. **Installer les dépendances** :
 
-PowerShell
-pip install -r backend/requirements.txt
-Exécution (développement)
+   ```bash
+   pip install -r backend/requirements.txt
+   ```
 
-Lancer le backend (depuis la racine du projet ou depuis le dossier backend) :
+4. **Initialiser la base de données** (SQLite) :
 
-PowerShell
-uvicorn app.main:app --reload --port 8000
-Le backend sera accessible dans le navigateur à l'adresse : http://localhost:8000
+   ```bash
+   cd backend
+   python -m app.db.init_db
+   ```
 
-Documentation automatique FastAPI : http://localhost:8000/docs
+   Cette commande crée le fichier `omt.db`, les tables nécessaires et insère
+   quelques utilisateurs/événements de démonstration.  Le démarrage du serveur
+   exécute automatiquement cette étape si elle n'a pas déjà été faite.
 
-Pour le frontend, vous pouvez ouvrir index.html directement dans le navigateur ou servir les fichiers statiques avec un serveur simple :
+---
 
-PowerShell
-python -m http.server 8001
-# Ensuite, ouvrez http://localhost:8001 dans votre navigateur (si exécuté depuis le répertoire contenant index.html)
-Structure du projet (résumé)
+## Lancer le serveur
 
-Fichier principal frontend : index.html
+Depuis le dossier `backend` :
 
-Répertoire backend : backend/
+```bash
+# utilisez l'exécutable du venv si vous en avez un
+backend/env/bin/python -m uvicorn app.main:app --reload --port 8000
+```
 
-Configuration & Sécurité : backend/app/core/config.py, backend/app/core/security.py
+- L'API sera disponible à : `http://localhost:8000`.
+- La documentation interactive FastAPI : `http://localhost:8000/docs`.
+- Le frontend statique est servi automatiquement à la racine du même port.
 
-Routes & Dépendances : backend/app/api/router.py, backend/app/api/deps.py
+Si vous préférez servir le frontend séparément :
 
-Modèles : backend/app/models/ (ex: event.py, ticket.py, user.py)
+```bash
+cd frontend
+python3 -m http.server 8001
+# puis ouvrez http://localhost:8001
+```
 
-Schémas (Pydantic) : backend/app/schemas/
+---
 
-Services : backend/app/services/ (ex: ticketing.py)
+## Tests manuels
 
-Initialisation DB : backend/app/db/init_db.py
+Trois scripts Python de vérification sont fournis dans `backend/` :
 
-Configuration & Environnements
+- `test_admin_modifs.py` : tests des opérations admin (mot de passe visible,
+  blocage de rétrogradation d'un organisateur avec événements, etc.).
+- `test_separation.py` : s'assure qu'un organisateur ne peut pas supprimer un
+  événement appartenant à un autre.
+- `test_verifier_assignment.py` : couvre l'affectation/désaffectation de
+  vérificateurs et la route `/events/assigned/me`.
 
-Vérifiez les paramètres dans backend/app/core/config.py pour les variables d'environnement (ex: connexion DB, clés secrètes).
+Exécutez-les avec :
 
-Vous pouvez utiliser un fichier .env local pour les variables sensibles.
+```bash
+cd backend
+backend/env/bin/python test_admin_modifs.py
+backend/env/bin/python test_separation.py
+backend/env/bin/python test_verifier_assignment.py
+```
 
-Développement & Contributions
+Tous les tests doivent afficher des **✅** avec zéro erreur.
 
-Ouvrez un "Issue" pour signaler des bugs ou demander des fonctionnalités.
+---
 
-Créez des branches pour vos modifications (feature/, fix/), soumettez des Pull Requests (PR) et incluez une description ainsi que les étapes de test.
+## Structure du projet
 
-Licence
+- `backend/` : code Python FastAPI
+  - `app/` : application principale
+  - `requirements.txt` : dépendances Python
+  - `test_*.py` : scripts de sanity-check
+- `frontend/` : fichiers statiques (HTML, JS, CSS)
 
-Recommandée : MIT. Ajoutez un fichier LICENSE si vous souhaitez une annonce officielle de licence.
+---
 
-Contact
+## Configuration
 
-Pour plus de détails, ajoutez ici vos informations de contact ou un lien vers votre profil GitHub.
+Les paramètres modifiables se trouvent dans `backend/app/core/config.py` :
+
+- `DATABASE_URL` (par défaut `sqlite+aiosqlite:///./omt.db`)
+- `SECRET_KEY`, durées des tokens etc.
+
+Vous pouvez créer un fichier `.env` dans `backend/` pour surcharger les
+variables d'environnement.
+
+---
+
+## Contribution
+
+1. Ajouter une issue pour un bug ou une fonctionnalité.
+2. Créer une branche `feat/...` ou `fix/...` et travailler dessus.
+3. Ouvrir une pull request, décrire les changements et les étapes de test.
+
+---
+
+## Licence
+
+Projet typiquement publié sous licence MIT ; ajoutez un fichier `LICENSE` si
+vous voulez formaliser cela.
+
+
+---
+
+*Ce README remplace toute procédure antérieure et décrit comment démarrer la
+plateforme à partir d'une installation fraîche.*

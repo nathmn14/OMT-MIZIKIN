@@ -2,13 +2,15 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.api.deps import require_role, require_roles, get_current_user
+from app.api.deps import require_roles
 from app.db.session import get_session
 from app.models.event import Event
+from app.models.ticket import Ticket
 from app.models.ticket_category import TicketCategory
 from app.models.user import User
 from app.schemas.event import EventCreate, EventOut, EventUpdate, EventShortOut
 from app.schemas.user import UserOut
+from app.services.exporters import build_event_export_response
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -47,6 +49,28 @@ async def get_event(event_id: int, session: AsyncSession = Depends(get_session))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return event
+
+@router.get("/{event_id}/export")
+async def export_event_data(
+    event_id: int,
+    format: str = "pdf",
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_roles(["admin", "organisateur"]))
+):
+    event = await session.get(Event, event_id, options=[selectinload(Event.categories)])
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if current_user.role != "admin" and event.organizer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Vous n'etes pas autorise a exporter cet evenement")
+
+    result = await session.execute(
+        select(Ticket)
+        .where(Ticket.event_id == event_id)
+        .order_by(Ticket.created_at.desc(), Ticket.id.desc())
+    )
+    tickets = result.scalars().all()
+    return build_event_export_response(event, tickets, format)
 
 @router.post("", response_model=EventOut)
 async def create_event(

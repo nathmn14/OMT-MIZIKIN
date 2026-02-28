@@ -55,7 +55,14 @@ def test_admin_modifs():
     users = requests.get(f"{BASE_URL}/admin/users", headers=headers).json()
     orga_user = next((u for u in users if u["email"] == orga_email), None)
     requests.post(f"{BASE_URL}/admin/users/{orga_user['id']}/approve", headers=headers)
-    
+
+    # promote the user to organisateur so they can create events
+    requests.patch(
+        f"{BASE_URL}/admin/users/{orga_user['id']}/role",
+        json={"role": "organisateur"},
+        headers=headers
+    )
+
     # Login as orga and create an event
     orga_login = requests.post(f"{BASE_URL}/auth/login", json={"email": orga_email, "password": orga_pass}).json()
     orga_token = orga_login["access_token"]
@@ -75,9 +82,13 @@ def test_admin_modifs():
         "categories": [{"name": "Standard", "price": 10, "stock": 100}]
     }, headers=orga_headers)
 
-    # Now try to change orga role as admin
+    # Now try to change orga role as admin (should be blocked because event exists)
     print("Trying to change orga role to participant...")
-    res = requests.patch(f"{BASE_URL}/admin/users/{orga_user['id']}/role", json={"role": "participant"}, headers=headers)
+    res = requests.patch(
+        f"{BASE_URL}/admin/users/{orga_user['id']}/role",
+        json={"role": "participant"},
+        headers=headers
+    )
     if res.status_code == 400:
         print(f"SUCCESS: Role change blocked. Error: {res.json()['detail']}")
     else:

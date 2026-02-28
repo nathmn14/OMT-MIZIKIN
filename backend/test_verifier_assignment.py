@@ -53,19 +53,9 @@ if r.status_code != 200:
 
 # 2. Connexion admin
 print("\n[2] Connexion admin...")
-admin_token = login("admin@omt.fr", "admin123")
+admin_token = login("admin@omt.com", "admin123")
 if not admin_token:
-    # Essayer de créer l'admin
-    r = post("/auth/register", {
-        "email": "admin_test@omt.fr",
-        "nom": "Admin Test",
-        "password": "Admin@1234",
-        "role": "admin"
-    })
-    if r.status_code == 200:
-        # Approuver via token admin existant
-        pass
-    admin_token = login("admin_test@omt.fr", "Admin@1234")
+    print("  ⚠️  Impossible to obtain admin token, make sure admin user exists and is approved.")
 
 log(f"Token admin obtenu", bool(admin_token))
 if not admin_token:
@@ -121,7 +111,9 @@ if verif and event:
     log(f"GET /users/verifiers → {r.status_code}", r.status_code == 200)
 
     print(f"\n[8] Connexion du vérificateur (test GET /events/assigned/me)...")
-    verif_token = login(verif["email"], verif.get("plain_password", ""))
+    # try using stored plain_password, fall back to known seeded password
+    pw = verif.get("plain_password") or "verif123"
+    verif_token = login(verif["email"], pw)
     if verif_token:
         r = get("/events/assigned/me", token=verif_token)
         log(f"GET /events/assigned/me → {r.status_code}", r.status_code == 200)
@@ -130,7 +122,7 @@ if verif and event:
             found_event = any(e["id"] == eid for e in assigned)
             log(f"L'événement est visible par le vérificateur: {found_event}", found_event)
     else:
-        log("Impossible de se connecter en tant que vérificateur (mot de passe inconnu)", False)
+        log("Impossible de se connecter en tant que vérificateur", False)
 
     print(f"\n[9] Retrait du vérificateur de l'événement...")
     r = delete(f"/events/{eid}/verifiers/{uid}", token=admin_token)
